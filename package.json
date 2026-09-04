@@ -1,0 +1,51 @@
+{
+	"name": "snaplogue",
+	"version": "0.1.0",
+	"description": "Local-first visual review for Playwright captures and live previews.",
+	"keywords": [
+		"playwright",
+		"visual-review",
+		"design-review",
+		"screenshots"
+	],
+	"type": "module",
+	"bin": {
+		"snaplogue": "./bin/snaplogue.mjs"
+	},
+	"exports": {
+		".": {
+			"types": "./src/index.d.ts",
+			"import": "./src/index.mjs"
+		},
+		"./playwright": {
+			"types": "./src/playwright.d.ts",
+			"import": "./src/playwright.mjs"
+		}
+	},
+	"files": [
+		"assets",
+		"bin",
+		"src",
+		"CHANGELOG.md",
+		"LICENSE",
+		"README.md"
+	],
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"check": "node --check src/cli.mjs && node --check src/index.mjs && node --check src/playwright.mjs && node --check bin/snaplogue.mjs",
+		"test": "npm run test:unit && npm run test:e2e",
+		"test:unit": "node --test tests/*.test.mjs",
+		"test:prepare": "node tests/prepare.mjs",
+		"test:e2e": "npm run test:prepare && playwright test",
+		"prepack": "npm run check && npm run test:unit"
+	},
+	"peerDependencies": {
+		"@playwright/test": ">=1.50.0"
+	},
+	"devDependencies": {
+		"@playwright/test": "1.62.1"
+	},
+	"license": "MIT"
+}

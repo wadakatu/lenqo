@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="light" />
+		<title>Snaplogue</title>
+		<style>
+			:root {
+				--ink: #182225;
+				--muted: #617074;
+				--canvas: #dce6e3;
+				--sheet: #f7faf9;
+				--rule: #aebcb8;
+				--signal: #315cff;
+				--signal-dark: #1737ac;
+				--ready: #b8f05a;
+				--shadow: 0 18px 50px rgb(24 34 37 / 0.13);
+				font-family: "Avenir Next", Avenir, "Helvetica Neue", "Yu Gothic", sans-serif;
+				color: var(--ink);
+				background: var(--canvas);
+			}
+
+			* { box-sizing: border-box; }
+			html { min-width: 320px; }
+			body { margin: 0; min-height: 100vh; background: var(--canvas); }
+			button, select, textarea { font: inherit; }
+			button { color: inherit; }
+			button:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+				outline: 3px solid var(--signal);
+				outline-offset: 3px;
+			}
+
+			.app-header {
+				position: sticky;
+				top: 0;
+				z-index: 20;
+				display: grid;
+				grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+				align-items: center;
+				min-height: 76px;
+				padding: 12px 24px;
+				border-bottom: 1px solid var(--rule);
+				background: rgb(220 230 227 / 0.93);
+				backdrop-filter: blur(16px);
+			}
+
+			.identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+			.identity__mark {
+				display: grid;
+				place-items: center;
+				width: 38px;
+				aspect-ratio: 1;
+				background: var(--ink);
+				color: var(--ready);
+				font: 700 15px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+			}
+			.identity__text { min-width: 0; }
+			.identity h1 { margin: 0; overflow: hidden; font-size: 15px; white-space: nowrap; text-overflow: ellipsis; }
+			.identity p, .capture-meta { margin: 3px 0 0; color: var(--muted); font: 600 10px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em; text-transform: uppercase; }
+
+			.mode-switch { display: flex; padding: 4px; border: 1px solid var(--rule); border-radius: 999px; background: rgb(247 250 249 / 0.55); }
+			.mode-switch button { min-width: 105px; padding: 9px 16px; border: 0; border-radius: 999px; background: transparent; cursor: pointer; font-size: 13px; font-weight: 700; }
+			.mode-switch button[aria-selected="true"] { background: var(--ink); color: white; }
+			.header-status { justify-self: end; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; }
+			.header-status::before { width: 9px; height: 9px; border-radius: 50%; background: var(--ready); box-shadow: 0 0 0 3px rgb(184 240 90 / 0.25); content: ""; }
+
+			.workspace { display: grid; grid-template-columns: 196px minmax(0, 1fr); min-height: calc(100vh - 77px); }
+			.page-index { position: sticky; top: 77px; align-self: start; min-height: calc(100vh - 77px); padding: 30px 18px; border-right: 1px solid var(--rule); }
+			.index-label { margin: 0 8px 13px; color: var(--muted); font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.14em; text-transform: uppercase; }
+			.page-list { display: grid; gap: 25px; }
+			.page-group__title { margin: 0 8px 8px; color: var(--muted); font: 700 9px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.11em; text-transform: uppercase; }
+			.page-list__items { display: grid; gap: 4px; }
+			.page-button { display: grid; grid-template-columns: 22px 1fr; gap: 8px; width: 100%; padding: 10px 8px; border: 0; border-radius: 3px; background: transparent; text-align: left; cursor: pointer; }
+			.page-button:hover { background: rgb(247 250 249 / 0.55); }
+			.page-button[aria-current="page"] { background: var(--sheet); box-shadow: inset 3px 0 var(--signal); }
+			.page-number { color: var(--muted); font: 600 10px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.page-name { font-size: 13px; font-weight: 700; }
+
+			.main { min-width: 0; padding: clamp(24px, 4vw, 58px); }
+			.view[hidden] { display: none; }
+			.view-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 34px; padding-bottom: 18px; border-bottom: 1px solid var(--rule); }
+			.view-heading h2 { margin: 0; font-size: clamp(30px, 4vw, 54px); font-weight: 600; letter-spacing: -0.045em; }
+			.view-heading p { max-width: 430px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+			.review-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 13px; margin: -15px 0 30px; }
+			.review-toolbar__label { color: var(--muted); font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+			.device-switch { display: flex; padding: 3px; border: 1px solid var(--rule); background: rgb(247 250 249 / 0.56); }
+			.device-switch button { min-height: 34px; padding: 0 15px; border: 0; background: transparent; cursor: pointer; font-size: 12px; font-weight: 700; }
+			.device-switch button:hover { background: var(--sheet); }
+			.device-switch button[aria-pressed="true"] { background: var(--ink); color: white; }
+
+			.state-section + .state-section { margin-top: 60px; }
+			.state-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+			.state-heading h3 { margin: 0; font-size: 15px; }
+			.state-heading span { color: var(--muted); font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+			.contact-sheet { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; align-items: start; }
+			.contact-sheet[data-device-filter="desktop"] .capture { grid-column: span 10; }
+			.capture { grid-column: span 6; min-width: 0; margin: 0; padding: 8px 8px 13px; background: var(--sheet); box-shadow: var(--shadow); }
+			.capture[data-orientation="portrait"] { grid-column: span 4; }
+			.capture__image-button { position: relative; display: block; width: 100%; max-height: min(70vh, 720px); overflow: hidden; padding: 0; border: 0; background: #cad4d1; cursor: zoom-in; }
+			.capture__image-button::after { position: absolute; right: 10px; bottom: 10px; padding: 7px 9px; background: rgb(24 34 37 / 0.9); color: white; content: "FULL CAPTURE ↗"; font: 700 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.05em; }
+			.capture__review-count { position: absolute; top: 10px; left: 10px; z-index: 1; padding: 7px 9px; background: var(--signal); color: white; font: 750 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.05em; }
+			.capture img { display: block; width: 100%; height: auto; }
+			.capture figcaption { display: flex; align-items: start; justify-content: space-between; gap: 14px; padding: 11px 4px 0; }
+			.capture__device { font-size: 12px; font-weight: 750; }
+			.capture__size { color: var(--muted); font: 600 10px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+
+			.preview-panel { min-height: calc(100vh - 190px); }
+			.preview-toolbar { display: grid; grid-template-columns: auto minmax(180px, 1fr) auto auto auto; align-items: center; gap: 12px; margin-bottom: 20px; padding: 10px; border: 1px solid var(--rule); background: rgb(247 250 249 / 0.67); }
+			.browser-actions, .viewport-actions { display: flex; gap: 4px; }
+			.tool-button, .viewport-button, .open-button { min-height: 36px; padding: 0 12px; border: 1px solid transparent; background: transparent; cursor: pointer; font-size: 12px; font-weight: 700; }
+			.tool-button { width: 36px; padding: 0; font-size: 16px; }
+			.tool-button--home { display: inline-flex; width: auto; align-items: center; gap: 6px; padding-inline: 10px; border-color: var(--rule); background: var(--sheet); font-size: 12px; }
+			.tool-button:hover, .viewport-button:hover, .open-button:hover { border-color: var(--rule); background: var(--sheet); }
+			.viewport-button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: white; }
+			.route-select { width: 100%; min-height: 36px; padding: 0 35px 0 11px; border: 1px solid var(--rule); border-radius: 0; background: var(--sheet); color: var(--ink); font-size: 12px; }
+			.open-button { display: inline-flex; align-items: center; justify-content: center; border-color: var(--ink); background: var(--sheet); color: var(--ink); line-height: 1; text-align: center; text-decoration: none; white-space: nowrap; }
+			.open-button:hover { border-color: var(--ink); background: var(--ink); color: white; }
+			.preview-review-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 0 13px; border: 1px solid var(--signal); background: var(--signal); color: white; cursor: pointer; font-size: 12px; font-weight: 750; white-space: nowrap; }
+			.preview-review-toggle:hover, .preview-review-toggle[aria-expanded="true"] { background: var(--signal-dark); }
+			.preview-review-toggle[disabled] { border-color: var(--rule); background: #cbd4d2; color: #687572; cursor: not-allowed; }
+			.preview-review-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding-inline: 5px; border-radius: 999px; background: white; color: var(--signal-dark); font: 800 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.preview-canvas { display: grid; place-items: start center; min-height: 780px; padding: 28px; overflow: auto; background-color: #c5d0cd; background-image: linear-gradient(rgb(24 34 37 / 0.06) 1px, transparent 1px), linear-gradient(90deg, rgb(24 34 37 / 0.06) 1px, transparent 1px); background-size: 24px 24px; }
+			.browser-frame { width: min(100%, 1440px); min-width: 320px; border: 1px solid #6f7c79; background: white; box-shadow: 0 30px 70px rgb(24 34 37 / 0.22); transition: width 240ms ease; }
+			.browser-chrome { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; height: 42px; padding: 0 13px; border-bottom: 1px solid #c8d0ce; background: #e7eceb; }
+			.traffic-lights { display: flex; gap: 6px; }
+			.traffic-lights span { width: 8px; height: 8px; border: 1px solid #8c9996; border-radius: 50%; background: #f8faf9; }
+			.preview-path { overflow: hidden; color: #4d5c60; font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; text-overflow: ellipsis; }
+			.preview-size { color: #4d5c60; font: 600 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.browser-viewport { position: relative; overflow: hidden; }
+			.preview-frame { display: block; width: 100%; height: 760px; border: 0; background: white; }
+			.preview-review-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+			.preview-review-layer.is-picking { cursor: crosshair; pointer-events: auto; background: rgb(49 92 255 / 0.06); box-shadow: inset 0 0 0 3px var(--signal); }
+			.preview-pick-hint { position: absolute; top: 14px; left: 50%; z-index: 1; display: none; padding: 9px 12px; transform: translateX(-50%); background: var(--ink); color: white; box-shadow: 0 8px 24px rgb(0 0 0 / 0.26); font-size: 11px; font-weight: 750; white-space: nowrap; }
+			.preview-review-layer.is-picking .preview-pick-hint { display: block; }
+			.preview-review-pin { position: absolute; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; transform: translate(-50%, -50%); border: 2px solid white; border-radius: 50%; background: var(--signal); color: white; box-shadow: 0 5px 18px rgb(0 0 0 / 0.38); cursor: pointer; pointer-events: auto; font: 800 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.preview-review-pin[data-status="resolved"] { background: #677572; opacity: 0.72; }
+			.preview-review-pin--draft { border-color: var(--ready); background: var(--ink); color: var(--ready); pointer-events: none; animation: review-pulse 1.4s ease-in-out infinite; }
+			.preview-review-drawer { top: 0; z-index: 4; width: min(380px, 100%); }
+			.preview-review-context { margin: 11px 0 0; padding: 9px 10px; border: 1px solid var(--rule); background: white; color: var(--muted); font: 600 9px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+			.preview-review-comment__location { display: block; margin: 8px 0 0; color: var(--muted); font: 600 9px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.preview-review-jump { margin-right: 12px; }
+
+			.image-dialog { position: relative; width: min(96vw, 1560px); height: 94vh; overflow: hidden; padding: 0; border: 0; background: var(--ink); color: white; box-shadow: 0 30px 100px rgb(0 0 0 / 0.45); }
+			.image-dialog::backdrop { background: rgb(11 17 19 / 0.76); backdrop-filter: blur(8px); }
+			.dialog-bar { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 50px; padding: 8px 12px 8px 18px; background: var(--ink); }
+			.dialog-title { flex: 1; min-width: 0; overflow: hidden; font-size: 12px; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
+			.dialog-actions { display: flex; flex: none; align-items: center; gap: 7px; }
+			.dialog-review-toggle { min-height: 34px; padding: 0 12px; border: 1px solid #66777b; background: transparent; color: white; cursor: pointer; font-size: 11px; font-weight: 750; }
+			.dialog-review-toggle:hover, .dialog-review-toggle[aria-expanded="true"] { border-color: var(--ready); background: var(--ready); color: var(--ink); }
+			.dialog-close { width: 34px; height: 34px; border: 1px solid #506064; border-radius: 50%; background: transparent; color: white; cursor: pointer; }
+			.dialog-image-wrap { height: calc(94vh - 50px); overflow: auto; background: #101719; overscroll-behavior: contain; text-align: center; }
+			.dialog-canvas { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; }
+			.dialog-canvas.is-picking { cursor: crosshair; }
+			.dialog-image { display: block; width: auto; max-width: 100%; height: auto; margin: 0 auto; }
+			.review-pin-layer { position: absolute; inset: 0; pointer-events: none; }
+			.review-pin { position: absolute; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; transform: translate(-50%, -50%); border: 2px solid white; border-radius: 50%; background: var(--signal); color: white; box-shadow: 0 5px 18px rgb(0 0 0 / 0.38); cursor: pointer; pointer-events: auto; font: 800 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.review-pin[data-status="resolved"] { border-color: #b9c5c2; background: #677572; opacity: 0.72; }
+			.review-pin--draft { border-color: var(--ready); background: var(--ink); color: var(--ready); animation: review-pulse 1.4s ease-in-out infinite; }
+			.review-drawer { position: absolute; top: 50px; right: 0; bottom: 0; z-index: 3; width: min(380px, 92%); overflow-y: auto; border-left: 1px solid #b7c4c0; background: var(--sheet); color: var(--ink); box-shadow: -24px 0 60px rgb(0 0 0 / 0.3); }
+			.review-drawer[hidden] { display: none; }
+			.review-drawer__head { position: sticky; top: 0; z-index: 1; padding: 22px 22px 17px; border-bottom: 1px solid var(--rule); background: rgb(247 250 249 / 0.96); backdrop-filter: blur(12px); }
+			.review-drawer__eyebrow { margin: 0 0 7px; color: var(--signal); font: 800 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.13em; text-transform: uppercase; }
+			.review-drawer h3 { margin: 0; font-size: 21px; letter-spacing: -0.025em; }
+			.review-drawer__guide { margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
+			.review-add { width: 100%; min-height: 42px; margin-top: 16px; border: 0; background: var(--signal); color: white; cursor: pointer; font-size: 12px; font-weight: 750; }
+			.review-add:hover { background: var(--signal-dark); }
+			.review-add[aria-pressed="true"] { background: var(--ready); color: var(--ink); }
+			.review-drawer__body { padding: 18px 22px 30px; }
+			.review-draft { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--rule); }
+			.review-draft label { display: block; margin-bottom: 8px; font-size: 11px; font-weight: 750; }
+			.review-draft textarea { display: block; width: 100%; min-height: 110px; resize: vertical; padding: 11px; border: 1px solid var(--rule); border-radius: 0; background: white; color: var(--ink); font-size: 13px; line-height: 1.65; }
+			.review-form-actions { display: flex; gap: 8px; margin-top: 9px; }
+			.review-form-actions button { flex: 1; min-height: 36px; border: 1px solid var(--ink); background: var(--ink); color: white; cursor: pointer; font-size: 11px; font-weight: 750; }
+			.review-form-actions .review-cancel { background: transparent; color: var(--ink); }
+			.review-error { margin: 9px 0 0; color: #b42a24; font-size: 11px; line-height: 1.5; }
+			.review-list { display: grid; gap: 0; }
+			.review-comment { padding: 15px 0 17px; border-bottom: 1px solid #d4ddda; }
+			.review-comment:first-child { padding-top: 0; }
+			.review-comment__meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+			.review-comment__number { display: inline-grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: var(--signal); color: white; font: 800 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.review-comment__status { color: var(--signal-dark); font: 750 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em; text-transform: uppercase; }
+			.review-comment p { margin: 11px 0 12px; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+			.review-comment__action { padding: 0; border: 0; border-bottom: 1px solid currentColor; background: transparent; color: var(--muted); cursor: pointer; font-size: 10px; font-weight: 750; }
+			.review-comment[data-status="resolved"] { opacity: 0.58; }
+			.review-comment[data-status="resolved"] .review-comment__number { background: #677572; }
+			.review-empty { margin: 2px 0 0; color: var(--muted); font-size: 12px; line-height: 1.75; }
+			.review-storage { margin: 20px 0 0; color: #7d8a87; font: 600 9px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.image-dialog[data-device="mobile"] { width: min(94vw, calc(var(--capture-width) + 18px)); border: 8px solid #101719; border-radius: 30px; }
+			.image-dialog[data-device="mobile"] .dialog-bar { min-height: 58px; gap: 12px; padding: 8px 8px 8px 14px; }
+			.image-dialog[data-device="mobile"] .dialog-image-wrap { height: calc(94vh - 74px); }
+			.image-dialog[data-device="mobile"] .dialog-canvas, .image-dialog[data-device="mobile"] .dialog-image { width: 100%; max-width: var(--capture-width); }
+			.image-dialog[data-device="mobile"] .review-drawer { top: 58px; width: 100%; border-left: 0; }
+			.image-dialog[data-device="mobile"] .dialog-review-toggle { padding-inline: 9px; }
+
+			@keyframes review-pulse { 50% { transform: translate(-50%, -50%) scale(1.12); } }
+
+			.empty { padding: 40px; border: 1px dashed var(--rule); color: var(--muted); }
+			@media (max-width: 900px) {
+				.app-header { grid-template-columns: 1fr auto; }
+				.header-status { display: none; }
+				.workspace { grid-template-columns: 1fr; }
+				.page-index { position: static; min-height: 0; padding: 14px 18px; border-right: 0; border-bottom: 1px solid var(--rule); }
+				.index-label { display: none; }
+				.page-list { display: flex; gap: 20px; overflow-x: auto; }
+				.page-group { flex: none; }
+				.page-list__items { display: flex; }
+				.page-button { min-width: 130px; }
+				.capture, .capture[data-orientation="portrait"] { grid-column: span 12; }
+				.preview-toolbar { grid-template-columns: auto 1fr auto; }
+				.viewport-actions { justify-content: end; }
+				.open-button { text-align: center; }
+			}
+			@media (max-width: 600px) {
+				.app-header { min-height: 118px; grid-template-columns: 1fr; gap: 10px; padding: 12px 16px; }
+				.mode-switch { justify-self: stretch; }
+				.mode-switch button { flex: 1; }
+				.page-index { top: 118px; }
+				.main { padding: 24px 14px 46px; }
+				.view-heading { display: block; }
+				.view-heading p { margin-top: 12px; }
+				.preview-canvas { min-height: 690px; padding: 12px; }
+				.preview-frame { height: 650px; }
+				.preview-toolbar { grid-template-columns: 1fr; }
+				.preview-review-toggle, .open-button { width: 100%; }
+				.review-toolbar { display: block; margin-top: -14px; }
+				.review-toolbar__label { display: block; margin-bottom: 9px; }
+				.device-switch { width: 100%; }
+				.device-switch button { flex: 1; padding-inline: 8px; }
+				.capture__image-button { max-height: 560px; }
+				.browser-actions, .viewport-actions { justify-content: center; }
+			}
+			@media (prefers-reduced-motion: reduce) {
+				.browser-frame { transition: none; }
+				.review-pin--draft { animation: none; }
+			}
+		</style>
+	</head>
+	<body>
+		<header class="app-header">
+			<div class="identity">
+				<div class="identity__mark" aria-hidden="true">SL</div>
+				<div class="identity__text">
+					<h1 id="catalog-title">Design review</h1>
+					<p id="catalog-meta">Loading captures</p>
+				</div>
+			</div>
+			<div id="mode-switch" class="mode-switch" role="tablist" aria-label="View mode">
+				<button id="review-mode" type="button" role="tab" aria-selected="true" aria-controls="review-view">Review</button>
+				<button id="preview-mode" type="button" role="tab" aria-selected="false" aria-controls="preview-view">Preview</button>
+			</div>
+			<div id="header-status" class="header-status">Local workspace</div>
+		</header>
+
+		<div class="workspace">
+			<aside id="page-index" class="page-index" aria-label="Screens">
+				<p id="index-label" class="index-label">Screens</p>
+				<div id="page-list" class="page-list"></div>
+			</aside>
+
+			<main class="main">
+				<section id="review-view" class="view" role="tabpanel" aria-labelledby="review-mode"></section>
+				<section id="preview-view" class="view preview-panel" role="tabpanel" aria-labelledby="preview-mode" hidden>
+					<div class="view-heading">
+						<h2 id="live-preview-title">Live preview</h2>
+						<p id="live-preview-description"></p>
+					</div>
+					<div id="preview-toolbar" class="preview-toolbar" aria-label="Preview controls">
+						<div class="browser-actions">
+							<button class="tool-button tool-button--home" id="preview-home" type="button" aria-label="Go home"><span aria-hidden="true">⌂</span><span id="preview-home-label">Home</span></button>
+							<button class="tool-button" id="preview-back" type="button" aria-label="Back">←</button>
+							<button class="tool-button" id="preview-forward" type="button" aria-label="Forward">→</button>
+							<button class="tool-button" id="preview-reload" type="button" aria-label="Reload">↻</button>
+						</div>
+						<select id="route-select" class="route-select" aria-label="Select a preview page"></select>
+						<div id="viewport-actions" class="viewport-actions" aria-label="Viewport widths">
+							<button class="viewport-button" type="button" data-width="1440" aria-pressed="true">Desktop</button>
+							<button class="viewport-button" type="button" data-width="768" aria-pressed="false">Tablet</button>
+							<button class="viewport-button" type="button" data-width="390" aria-pressed="false">Mobile</button>
+						</div>
+						<button id="preview-review-toggle" class="preview-review-toggle" type="button" aria-expanded="false" aria-controls="preview-review-drawer">Review</button>
+						<a id="open-preview" class="open-button" href="/" target="_blank" rel="noreferrer">Open in new tab ↗</a>
+					</div>
+					<div class="preview-canvas">
+						<div id="browser-frame" class="browser-frame">
+							<div class="browser-chrome" aria-hidden="true">
+								<div class="traffic-lights"><span></span><span></span><span></span></div>
+								<div id="preview-path" class="preview-path">/</div>
+								<div id="preview-size" class="preview-size">1440px</div>
+							</div>
+							<div class="browser-viewport">
+								<iframe id="preview-frame" class="preview-frame" title="Live site preview" src="/"></iframe>
+								<div id="preview-review-layer" class="preview-review-layer" aria-label="Live Preview review positions">
+									<span class="preview-pick-hint">Click the position to review · Esc to cancel</span>
+								</div>
+								<aside id="preview-review-drawer" class="review-drawer preview-review-drawer" aria-label="Live Previewのレビューコメント" hidden></aside>
+							</div>
+						</div>
+					</div>
+				</section>
+			</main>
+		</div>
+
+		<dialog id="image-dialog" class="image-dialog">
+			<div class="dialog-bar">
+				<span id="dialog-title" class="dialog-title"></span>
+				<div class="dialog-actions">
+					<button id="dialog-review-toggle" class="dialog-review-toggle" type="button" aria-expanded="false" aria-controls="review-drawer">Review</button>
+					<button id="dialog-close" class="dialog-close" type="button" aria-label="Close full capture">×</button>
+				</div>
+			</div>
+			<div class="dialog-image-wrap">
+				<div id="dialog-canvas" class="dialog-canvas">
+					<img id="dialog-image" class="dialog-image" alt="" />
+					<div id="review-pin-layer" class="review-pin-layer" aria-label="レビュー位置"></div>
+				</div>
+			</div>
+			<aside id="review-drawer" class="review-drawer" aria-label="レビューコメント" hidden></aside>
+		</dialog>
+
+		<script id="catalog-data" type="application/json">__SNAPLOGUE_DATA__</script>
+		<script>
+			const data = JSON.parse(document.querySelector("#catalog-data").textContent);
+			const t = data.labels;
+			const pageList = document.querySelector("#page-list");
+			const reviewView = document.querySelector("#review-view");
+			const previewView = document.querySelector("#preview-view");
+			const reviewMode = document.querySelector("#review-mode");
+			const previewMode = document.querySelector("#preview-mode");
+			const routeSelect = document.querySelector("#route-select");
+			const frame = document.querySelector("#preview-frame");
+			const browserFrame = document.querySelector("#browser-frame");
+			const previewPath = document.querySelector("#preview-path");
+			const previewSize = document.querySelector("#preview-size");
+			const openPreview = document.querySelector("#open-preview");
+			const previewReviewToggle = document.querySelector("#preview-review-toggle");
+			const previewReviewLayer = document.querySelector("#preview-review-layer");
+			const previewReviewDrawer = document.querySelector("#preview-review-drawer");
+			const dialog = document.querySelector("#image-dialog");
+			const dialogImage = document.querySelector("#dialog-image");
+			const dialogTitle = document.querySelector("#dialog-title");
+			const dialogCanvas = document.querySelector("#dialog-canvas");
+			const dialogReviewToggle = document.querySelector("#dialog-review-toggle");
+			const reviewPinLayer = document.querySelector("#review-pin-layer");
+			const reviewDrawer = document.querySelector("#review-drawer");
+			let selectedPageId = data.pages[0]?.id;
+			let selectedDeviceFilter = "all";
+			let reviewDocument = { version: 1, revision: 0, updatedAt: null, comments: [] };
+			let currentCapture = null;
+			let pendingPin = null;
+			let isPickingPin = false;
+			let reviewDrawerOpen = false;
+			let reviewSaving = false;
+			let reviewErrorMessage = "";
+			let currentPreviewWidth = 1440;
+			let lastPreviewRoute = null;
+			let previewDrawerOpen = false;
+			let previewPicking = false;
+			let previewPendingPin = null;
+			let previewReviewErrorMessage = "";
+
+			document.documentElement.lang = data.locale;
+			document.title = `${data.title} — Snaplogue`;
+			document.querySelector("#catalog-title").textContent = data.title;
+			document.querySelector("#mode-switch").setAttribute("aria-label", t.modeLabel);
+			document.querySelector("#page-index").setAttribute("aria-label", t.screenIndex);
+			document.querySelector("#index-label").textContent = t.screenIndex;
+			document.querySelector("#header-status").textContent = t.localWorkspace;
+			document.querySelector("#live-preview-title").textContent = t.livePreview;
+			document.querySelector("#live-preview-description").textContent = t.liveDescription;
+			document.querySelector("#preview-toolbar").setAttribute("aria-label", t.previewActions);
+			document.querySelector("#preview-home").setAttribute("aria-label", t.homeAria);
+			document.querySelector("#preview-home-label").textContent = t.home;
+			document.querySelector("#preview-back").setAttribute("aria-label", t.back);
+			document.querySelector("#preview-forward").setAttribute("aria-label", t.forward);
+			document.querySelector("#preview-reload").setAttribute("aria-label", t.reload);
+			document.querySelector("#route-select").setAttribute("aria-label", t.selectPage);
+			document.querySelector("#viewport-actions").setAttribute("aria-label", t.viewportWidths);
+			document.querySelector("#preview-frame").title = t.liveFrame;
+			document.querySelector("#preview-review-layer").setAttribute("aria-label", t.livePositions);
+			document.querySelector("#preview-review-drawer").setAttribute("aria-label", t.liveComments);
+			document.querySelector("#dialog-close").setAttribute("aria-label", t.closeCapture);
+			document.querySelector("#review-pin-layer").setAttribute("aria-label", t.capturePositions);
+			document.querySelector("#review-drawer").setAttribute("aria-label", t.captureComments);
+			openPreview.textContent = t.openNewTab;
+			const generated = new Intl.DateTimeFormat(t.locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(data.generatedAt));
+			document.querySelector("#catalog-meta").textContent = `${data.captureCount} captures · ${generated}`;
+
+			const escapeHTML = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
+			const formatMessage = (message, values) => Object.entries(values).reduce((result, [key, value]) => result.replaceAll(`{${key}}`, String(value)), message);
+			const projectLabel = (project) => project.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+			const captureIdFor = (pageId, stateId, project) => `${pageId}/${stateId}/${project}`;
+			const commentsForCapture = (captureId) => reviewDocument.comments
+				.filter((comment) => comment.captureId === captureId)
+				.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+			const openCommentCount = (captureId) => commentsForCapture(captureId).filter((comment) => comment.status === "open").length;
+
+			function getPreviewContext() {
+				try {
+					const previewWindow = frame.contentWindow;
+					const location = previewWindow.location;
+					const documentElement = frame.contentDocument.documentElement;
+					const body = frame.contentDocument.body;
+					const pageHeight = Math.max(
+						documentElement.scrollHeight,
+						documentElement.offsetHeight,
+						body?.scrollHeight ?? 0,
+						body?.offsetHeight ?? 0,
+						previewWindow.innerHeight,
+					);
+					return {
+						route: `${location.pathname}${location.search}`,
+						viewportWidth: currentPreviewWidth,
+						device: currentPreviewWidth < 600 ? "mobile" : "desktop",
+						scrollY: previewWindow.scrollY,
+						pageHeight,
+						viewportHeight: previewWindow.innerHeight,
+					};
+				} catch {
+					return null;
+				}
+			}
+
+			function commentsForPreview(context = getPreviewContext()) {
+				if (!context) return [];
+				return reviewDocument.comments
+					.filter((comment) => comment.source === "preview"
+						&& comment.route === context.route
+						&& comment.viewportWidth === context.viewportWidth)
+					.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+			}
+
+			function renderPageIndex() {
+				let pageNumber = 0;
+				pageList.innerHTML = data.groups.map((group) => {
+					const pages = data.pages.filter((page) => page.groupId === group.id);
+					if (pages.length === 0) return "";
+					return `
+						<section class="page-group" aria-labelledby="page-group-${escapeHTML(group.id)}">
+							<h2 id="page-group-${escapeHTML(group.id)}" class="page-group__title">${escapeHTML(group.title)}</h2>
+							<div class="page-list__items">
+								${pages.map((page) => {
+									pageNumber += 1;
+									return `
+										<button class="page-button" type="button" data-page-id="${escapeHTML(page.id)}" aria-current="${page.id === selectedPageId ? "page" : "false"}">
+											<span class="page-number">${String(pageNumber).padStart(2, "0")}</span>
+											<span class="page-name">${escapeHTML(page.title)}</span>
+										</button>`;
+								}).join("")}
+							</div>
+						</section>`;
+				}).join("");
+				pageList.querySelectorAll(".page-button").forEach((button) => button.addEventListener("click", () => selectPage(button.dataset.pageId)));
+			}
+
+			function renderReview() {
+				const page = data.pages.find((item) => item.id === selectedPageId);
+				if (!page) {
+					reviewView.innerHTML = `<p class="empty">${escapeHTML(t.noCaptures)}</p>`;
+					return;
+				}
+				const visibleStates = page.states
+					.map((state) => ({
+						...state,
+						captures: state.captures.filter((capture) => {
+							if (selectedDeviceFilter === "desktop") return capture.viewport.width >= 600;
+							if (selectedDeviceFilter === "mobile") return capture.viewport.width < 600;
+							return true;
+						}),
+					}))
+					.filter((state) => state.captures.length > 0);
+				reviewView.innerHTML = `
+					<div class="view-heading">
+						<h2>${escapeHTML(page.title)}</h2>
+						<p>${escapeHTML(t.reviewDescription)}</p>
+					</div>
+					<div class="review-toolbar">
+						<span class="review-toolbar__label">${escapeHTML(t.deviceLabel)}</span>
+						<div class="device-switch" role="group" aria-label="${escapeHTML(t.deviceGroup)}">
+							<button type="button" data-device-filter="all" aria-pressed="${selectedDeviceFilter === "all"}">${escapeHTML(t.allDevices)}</button>
+							<button type="button" data-device-filter="desktop" aria-pressed="${selectedDeviceFilter === "desktop"}">${escapeHTML(t.desktopOnly)}</button>
+							<button type="button" data-device-filter="mobile" aria-pressed="${selectedDeviceFilter === "mobile"}">${escapeHTML(t.mobileOnly)}</button>
+						</div>
+					</div>
+					${visibleStates.map((state) => `
+						<section class="state-section">
+							<div class="state-heading"><h3>${escapeHTML(state.title)}</h3><span>${state.captures.length} views</span></div>
+							<div class="contact-sheet" data-device-filter="${selectedDeviceFilter}">
+								${state.captures.map((capture) => `
+									<figure class="capture" data-orientation="${capture.viewport.width < 600 ? "portrait" : "landscape"}">
+										<button class="capture__image-button" type="button" data-image="${escapeHTML(capture.src)}" data-title="${escapeHTML(`${page.title} · ${state.title} · ${projectLabel(capture.project)}`)}" data-device="${capture.viewport.width < 600 ? "mobile" : "desktop"}" data-capture-width="${capture.viewport.width}" data-capture-id="${escapeHTML(captureIdFor(page.id, state.id, capture.project))}" data-page-id="${escapeHTML(page.id)}" data-state-id="${escapeHTML(state.id)}" data-project="${escapeHTML(capture.project)}">
+											<img src="${escapeHTML(capture.src)}" alt="${escapeHTML(formatMessage(t.captureAlt, { page: page.title, state: state.title, width: capture.viewport.width }))}" loading="lazy" />
+											${openCommentCount(captureIdFor(page.id, state.id, capture.project)) > 0 ? `<span class="capture__review-count">${openCommentCount(captureIdFor(page.id, state.id, capture.project))} OPEN</span>` : ""}
+										</button>
+										<figcaption><span class="capture__device">${escapeHTML(projectLabel(capture.project))}</span><span class="capture__size">${capture.viewport.width} × ${capture.viewport.height}<br />${capture.image.height}px full page</span></figcaption>
+									</figure>
+								`).join("")}
+							</div>
+						</section>
+					`).join("")}
+				`;
+				reviewView.querySelectorAll(".device-switch button").forEach((button) => button.addEventListener("click", () => {
+					selectedDeviceFilter = button.dataset.deviceFilter;
+					renderReview();
+				}));
+				reviewView.querySelectorAll(".capture__image-button").forEach((button) => button.addEventListener("click", () => {
+					currentCapture = {
+						captureId: button.dataset.captureId,
+						pageId: button.dataset.pageId,
+						stateId: button.dataset.stateId,
+						project: button.dataset.project,
+						device: button.dataset.device,
+					};
+					pendingPin = null;
+					isPickingPin = false;
+					reviewDrawerOpen = false;
+					reviewErrorMessage = "";
+					dialogImage.src = button.dataset.image;
+					dialogImage.alt = button.dataset.title;
+					dialogTitle.textContent = button.dataset.title;
+					dialog.dataset.device = button.dataset.device;
+					dialog.style.setProperty("--capture-width", `${button.dataset.captureWidth}px`);
+					document.querySelector(".dialog-image-wrap").scrollTop = 0;
+					renderDialogReview();
+					dialog.showModal();
+				}));
+			}
+
+			function renderDialogReview() {
+				const comments = currentCapture ? commentsForCapture(currentCapture.captureId) : [];
+				const openCount = comments.filter((comment) => comment.status === "open").length;
+				dialogReviewToggle.textContent = isPickingPin ? t.selecting : (openCount > 0 ? `${t.review} ${openCount}` : t.review);
+				dialogReviewToggle.setAttribute("aria-expanded", String(reviewDrawerOpen));
+				reviewDrawer.hidden = !reviewDrawerOpen;
+				dialogCanvas.classList.toggle("is-picking", isPickingPin);
+
+				reviewPinLayer.innerHTML = comments.map((comment, index) => `
+					<button class="review-pin" type="button" style="left:${comment.x * 100}%;top:${comment.y * 100}%" data-comment-id="${escapeHTML(comment.id)}" data-status="${comment.status}" aria-label="${escapeHTML(formatMessage(t.showReview, { number: index + 1 }))}">${index + 1}</button>
+				`).join("") + (pendingPin ? `<span class="review-pin review-pin--draft" style="left:${pendingPin.x * 100}%;top:${pendingPin.y * 100}%" aria-hidden="true">＋</span>` : "");
+
+				if (!currentCapture) {
+					reviewDrawer.innerHTML = "";
+					return;
+				}
+
+				const draftForm = pendingPin ? `
+					<form id="review-draft-form" class="review-draft">
+						<label for="review-message">${escapeHTML(t.commentLabel)}</label>
+						<textarea id="review-message" maxlength="2000" placeholder="${escapeHTML(t.capturePlaceholder)}">${escapeHTML(pendingPin.message ?? "")}</textarea>
+						<div class="review-form-actions">
+							<button type="submit" ${reviewSaving ? "disabled" : ""}>${reviewSaving ? escapeHTML(t.saving) : escapeHTML(t.saveComment)}</button>
+							<button class="review-cancel" type="button" data-review-action="cancel">${escapeHTML(t.cancel)}</button>
+						</div>
+						${reviewErrorMessage ? `<p class="review-error" role="alert">${escapeHTML(reviewErrorMessage)}</p>` : ""}
+					</form>
+				` : (reviewErrorMessage ? `<p class="review-error" role="alert">${escapeHTML(reviewErrorMessage)}</p>` : "");
+
+				reviewDrawer.innerHTML = `
+					<div class="review-drawer__head">
+						<p class="review-drawer__eyebrow">${escapeHTML(t.pinnedFeedback)}</p>
+						<h3>${escapeHTML(t.captureComments)}</h3>
+						<p class="review-drawer__guide">${escapeHTML(isPickingPin ? t.capturePickGuide : t.captureGuide)}</p>
+						<button class="review-add" type="button" data-review-action="add" aria-pressed="${isPickingPin}">${escapeHTML(isPickingPin ? t.selectingPosition : t.addComment)}</button>
+					</div>
+					<div class="review-drawer__body">
+						${draftForm}
+						<div class="review-list">
+							${comments.length > 0 ? comments.map((comment, index) => `
+								<article id="review-comment-${escapeHTML(comment.id)}" class="review-comment" data-status="${comment.status}">
+									<div class="review-comment__meta">
+										<span class="review-comment__number">${index + 1}</span>
+										<span class="review-comment__status">${comment.status === "open" ? "Open" : "Resolved"}</span>
+									</div>
+									<p>${escapeHTML(comment.message)}</p>
+									<button class="review-comment__action" type="button" data-review-action="toggle-status" data-comment-id="${escapeHTML(comment.id)}">${escapeHTML(comment.status === "open" ? t.resolve : t.reopen)}</button>
+								</article>
+							`).join("") : `<p class="review-empty">${escapeHTML(t.emptyCaptureComments)}</p>`}
+						</div>
+						<p class="review-storage">${escapeHTML(t.storageLabel)}</p>
+					</div>
+				`;
+			}
+
+			function setReviewDrawer(open) {
+				reviewDrawerOpen = open;
+				renderDialogReview();
+			}
+
+			function renderPreviewReview() {
+				const context = getPreviewContext();
+				const comments = commentsForPreview(context);
+				const openCount = comments.filter((comment) => comment.status === "open").length;
+				previewReviewToggle.disabled = !context;
+				previewReviewToggle.setAttribute("aria-expanded", String(previewDrawerOpen));
+				previewReviewToggle.innerHTML = previewPicking
+					? escapeHTML(t.selecting)
+					: `${escapeHTML(t.review)}${openCount > 0 ? `<span class="preview-review-count">${openCount}</span>` : ""}`;
+				previewReviewDrawer.hidden = !previewDrawerOpen;
+				previewReviewLayer.classList.toggle("is-picking", previewPicking);
+
+				const visiblePins = context ? comments.map((comment, index) => ({
+					comment,
+					index,
+					top: (comment.y * context.pageHeight) - context.scrollY,
+				})).filter((item) => item.top >= -18 && item.top <= context.viewportHeight + 18) : [];
+				const draftTop = context && previewPendingPin
+					? (previewPendingPin.y * context.pageHeight) - context.scrollY
+					: null;
+				previewReviewLayer.innerHTML = `
+					<span class="preview-pick-hint">${escapeHTML(t.pickHint)}</span>
+					${visiblePins.map(({ comment, index, top }) => `
+						<button class="preview-review-pin" type="button" style="left:${comment.x * 100}%;top:${top}px" data-preview-comment-id="${escapeHTML(comment.id)}" data-status="${comment.status}" aria-label="${escapeHTML(formatMessage(t.showReview, { number: index + 1 }))}">${index + 1}</button>
+					`).join("")}
+					${previewPendingPin && draftTop !== null && draftTop >= -18 && draftTop <= context.viewportHeight + 18
+						? `<span class="preview-review-pin preview-review-pin--draft" style="left:${previewPendingPin.x * 100}%;top:${draftTop}px" aria-hidden="true">＋</span>`
+						: ""}
+				`;
+
+				if (!context) {
+					previewReviewDrawer.innerHTML = `
+						<div class="review-drawer__head">
+							<p class="review-drawer__eyebrow">${escapeHTML(t.liveFeedback)}</p>
+							<h3>${escapeHTML(t.liveComments)}</h3>
+							<p class="review-drawer__guide">${escapeHTML(t.externalGuide)}</p>
+						</div>
+					`;
+					return;
+				}
+
+				const draftForm = previewPendingPin ? `
+					<form id="preview-review-draft-form" class="review-draft">
+						<label for="preview-review-message">${escapeHTML(t.commentLabel)}</label>
+						<textarea id="preview-review-message" maxlength="2000" placeholder="${escapeHTML(t.previewPlaceholder)}">${escapeHTML(previewPendingPin.message ?? "")}</textarea>
+						<div class="review-form-actions">
+							<button type="submit" ${reviewSaving ? "disabled" : ""}>${reviewSaving ? escapeHTML(t.saving) : escapeHTML(t.saveComment)}</button>
+							<button class="review-cancel" type="button" data-preview-review-action="cancel">${escapeHTML(t.cancel)}</button>
+						</div>
+						${previewReviewErrorMessage ? `<p class="review-error" role="alert">${escapeHTML(previewReviewErrorMessage)}</p>` : ""}
+					</form>
+				` : (previewReviewErrorMessage ? `<p class="review-error" role="alert">${escapeHTML(previewReviewErrorMessage)}</p>` : "");
+
+				previewReviewDrawer.innerHTML = `
+					<div class="review-drawer__head">
+						<p class="review-drawer__eyebrow">${escapeHTML(t.liveFeedback)}</p>
+						<h3>${escapeHTML(t.liveComments)}</h3>
+						<p class="review-drawer__guide">${escapeHTML(t.previewGuide)}</p>
+						<p class="preview-review-context">${escapeHTML(context.route)} · ${context.viewportWidth}px</p>
+						<button class="review-add" type="button" data-preview-review-action="add" aria-pressed="${previewPicking}">${escapeHTML(previewPicking ? t.selectingPosition : t.addComment)}</button>
+					</div>
+					<div class="review-drawer__body">
+						${draftForm}
+						<div class="review-list">
+							${comments.length > 0 ? comments.map((comment, index) => `
+								<article id="preview-review-comment-${escapeHTML(comment.id)}" class="review-comment preview-review-comment" data-status="${comment.status}">
+									<div class="review-comment__meta">
+										<span class="review-comment__number">${index + 1}</span>
+										<span class="review-comment__status">${comment.status === "open" ? "Open" : "Resolved"}</span>
+									</div>
+									<p>${escapeHTML(comment.message)}</p>
+									<span class="preview-review-comment__location">${escapeHTML(comment.route)} · ${comment.viewportWidth}px</span>
+									<button class="review-comment__action preview-review-jump" type="button" data-preview-review-action="jump" data-comment-id="${escapeHTML(comment.id)}">${escapeHTML(t.jumpToPosition)}</button>
+									<button class="review-comment__action" type="button" data-preview-review-action="toggle-status" data-comment-id="${escapeHTML(comment.id)}">${escapeHTML(comment.status === "open" ? t.resolve : t.reopen)}</button>
+								</article>
+							`).join("") : `<p class="review-empty">${escapeHTML(t.emptyPreviewComments)}</p>`}
+						</div>
+						<p class="review-storage">${escapeHTML(t.storageLabel)}</p>
+					</div>
+				`;
+			}
+
+			function setPreviewReviewDrawer(open) {
+				previewDrawerOpen = open;
+				renderPreviewReview();
+			}
+
+			async function commitReviewComments(comments, surface = "capture") {
+				const previousDocument = reviewDocument;
+				let fallbackDocument = previousDocument;
+				reviewDocument = { ...reviewDocument, comments, updatedAt: new Date().toISOString() };
+				reviewSaving = true;
+				if (surface === "preview") previewReviewErrorMessage = "";
+				else reviewErrorMessage = "";
+				renderReview();
+				renderDialogReview();
+				renderPreviewReview();
+				try {
+					const response = await fetch("/__snaplogue/api/comments", {
+						method: "PUT",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify(reviewDocument),
+					});
+					const result = await response.json();
+					if (!response.ok) {
+						fallbackDocument = response.status === 409 && result.document ? result.document : previousDocument;
+						throw new Error(result.error || t.saveFailed);
+					}
+					reviewDocument = result;
+					return true;
+				} catch (error) {
+					reviewDocument = fallbackDocument;
+					const message = error instanceof Error ? error.message : t.saveFailed;
+					if (surface === "preview") previewReviewErrorMessage = message;
+					else reviewErrorMessage = message;
+					return false;
+				} finally {
+					reviewSaving = false;
+					renderReview();
+					renderDialogReview();
+					renderPreviewReview();
+				}
+			}
+
+			async function loadReviewComments() {
+				try {
+					const response = await fetch("/__snaplogue/api/comments", { cache: "no-store" });
+					if (!response.ok) throw new Error(t.loadFailed);
+					reviewDocument = await response.json();
+				} catch {
+					reviewErrorMessage = t.serveHint;
+					previewReviewErrorMessage = reviewErrorMessage;
+				} finally {
+					renderReview();
+					renderDialogReview();
+					renderPreviewReview();
+				}
+			}
+
+			function selectPage(pageId) {
+				selectedPageId = pageId;
+				renderPageIndex();
+				renderReview();
+				const page = data.pages.find((item) => item.id === pageId);
+				if (page && previewMode.getAttribute("aria-selected") === "true") navigatePreview(page.route);
+			}
+
+			function setMode(mode) {
+				const isReview = mode === "review";
+				reviewMode.setAttribute("aria-selected", String(isReview));
+				previewMode.setAttribute("aria-selected", String(!isReview));
+				reviewView.hidden = !isReview;
+				previewView.hidden = isReview;
+				if (isReview) {
+					renderReview();
+				} else {
+					const selectedPage = data.pages.find((page) => page.id === selectedPageId);
+					if (selectedPage) {
+						routeSelect.value = selectedPage.route;
+						navigatePreview(selectedPage.route);
+					}
+					frame.focus();
+				}
+			}
+
+			function navigatePreview(route) {
+				previewPendingPin = null;
+				previewPicking = false;
+				previewReviewErrorMessage = "";
+				frame.src = route;
+				openPreview.href = route;
+				renderPreviewReview();
+			}
+
+			function returnPreviewHome() {
+				const homeRoute = data.pages.find((page) => page.route === "/")?.route ?? data.pages[0]?.route ?? "/";
+				routeSelect.value = homeRoute;
+				navigatePreview(homeRoute);
+			}
+
+			function syncPreviewLocation() {
+				try {
+					const location = frame.contentWindow.location;
+					const route = `${location.pathname}${location.search}`;
+					previewPath.textContent = `${route}${location.hash}`;
+					openPreview.href = location.href;
+					const matchingPage = data.pages.find((page) => page.route === location.pathname);
+					routeSelect.value = matchingPage?.route ?? "";
+					if (matchingPage && matchingPage.id !== selectedPageId) {
+						selectedPageId = matchingPage.id;
+						renderPageIndex();
+					}
+					if (lastPreviewRoute !== route) {
+						lastPreviewRoute = route;
+						previewPendingPin = null;
+						previewPicking = false;
+						previewReviewErrorMessage = "";
+					}
+				} catch {
+					previewPath.textContent = t.externalPage;
+					routeSelect.value = "";
+					lastPreviewRoute = null;
+					previewPendingPin = null;
+					previewPicking = false;
+				}
+				renderPreviewReview();
+			}
+
+			const routePlaceholder = new Option(t.selectPagePlaceholder, "", true, true);
+			routePlaceholder.disabled = true;
+			routeSelect.add(routePlaceholder);
+			data.groups.forEach((group) => {
+				const pages = data.pages.filter((page) => page.groupId === group.id);
+				if (pages.length === 0) return;
+				const optionGroup = document.createElement("optgroup");
+				optionGroup.label = group.title;
+				pages.forEach((page) => optionGroup.append(new Option(page.title, page.route)));
+				routeSelect.add(optionGroup);
+			});
+			routeSelect.addEventListener("change", () => {
+				if (routeSelect.value) navigatePreview(routeSelect.value);
+			});
+			reviewMode.addEventListener("click", () => setMode("review"));
+			previewMode.addEventListener("click", () => setMode("preview"));
+			document.querySelector("#preview-home").addEventListener("click", returnPreviewHome);
+			document.querySelector("#preview-back").addEventListener("click", () => frame.contentWindow.history.back());
+			document.querySelector("#preview-forward").addEventListener("click", () => frame.contentWindow.history.forward());
+			document.querySelector("#preview-reload").addEventListener("click", () => frame.contentWindow.location.reload());
+			frame.addEventListener("load", () => {
+				syncPreviewLocation();
+				try {
+					frame.contentWindow.addEventListener("hashchange", syncPreviewLocation);
+					frame.contentWindow.addEventListener("popstate", syncPreviewLocation);
+					frame.contentWindow.addEventListener("scroll", renderPreviewReview, { passive: true });
+					frame.contentDocument.addEventListener("click", () => setTimeout(syncPreviewLocation));
+				} catch {}
+			});
+			document.querySelectorAll(".viewport-button").forEach((button) => button.addEventListener("click", () => {
+				const width = Number(button.dataset.width);
+				currentPreviewWidth = width;
+				previewPendingPin = null;
+				previewPicking = false;
+				previewReviewErrorMessage = "";
+				browserFrame.style.width = `min(100%, ${width}px)`;
+				previewSize.textContent = `${width}px`;
+				document.querySelectorAll(".viewport-button").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+				renderPreviewReview();
+			}));
+			previewReviewToggle.addEventListener("click", () => {
+				if (previewReviewToggle.disabled) return;
+				if (previewPicking) {
+					previewPicking = false;
+					previewDrawerOpen = true;
+				} else {
+					previewDrawerOpen = !previewDrawerOpen;
+				}
+				renderPreviewReview();
+			});
+			previewReviewLayer.addEventListener("click", (event) => {
+				const pin = event.target.closest("[data-preview-comment-id]");
+				if (pin) {
+					setPreviewReviewDrawer(true);
+					requestAnimationFrame(() => document.querySelector(`#preview-review-comment-${CSS.escape(pin.dataset.previewCommentId)}`)?.scrollIntoView({ block: "center" }));
+					return;
+				}
+				if (!previewPicking || event.target.closest(".preview-pick-hint")) return;
+				const context = getPreviewContext();
+				if (!context) return;
+				const bounds = previewReviewLayer.getBoundingClientRect();
+				const page = data.pages.find((item) => item.route === context.route)
+					?? data.pages.find((item) => item.id === selectedPageId)
+					?? data.pages[0];
+				previewPendingPin = {
+					x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
+					y: Math.max(0, Math.min(1, (context.scrollY + event.clientY - bounds.top) / context.pageHeight)),
+					message: "",
+					route: context.route,
+					viewportWidth: context.viewportWidth,
+					device: context.device,
+					pageId: page?.id ?? "preview",
+				};
+				previewPicking = false;
+				previewDrawerOpen = true;
+				renderPreviewReview();
+				requestAnimationFrame(() => document.querySelector("#preview-review-message")?.focus());
+			});
+			previewReviewDrawer.addEventListener("click", async (event) => {
+				const action = event.target.closest("[data-preview-review-action]");
+				if (!action || reviewSaving) return;
+				if (action.dataset.previewReviewAction === "add") {
+					previewPendingPin = null;
+					previewPicking = true;
+					previewDrawerOpen = false;
+					previewReviewErrorMessage = "";
+					renderPreviewReview();
+					return;
+				}
+				if (action.dataset.previewReviewAction === "cancel") {
+					previewPendingPin = null;
+					previewReviewErrorMessage = "";
+					renderPreviewReview();
+					return;
+				}
+				const comment = reviewDocument.comments.find((item) => item.id === action.dataset.commentId);
+				if (!comment) return;
+				if (action.dataset.previewReviewAction === "jump") {
+					const context = getPreviewContext();
+					if (context) {
+						previewDrawerOpen = false;
+						frame.contentWindow.scrollTo({ top: Math.max(0, (comment.y * context.pageHeight) - (context.viewportHeight / 2)), behavior: "smooth" });
+						setTimeout(renderPreviewReview, 260);
+					}
+					return;
+				}
+				if (action.dataset.previewReviewAction === "toggle-status") {
+					const now = new Date().toISOString();
+					const nextComments = reviewDocument.comments.map((item) => item.id === comment.id
+						? { ...item, status: item.status === "open" ? "resolved" : "open", updatedAt: now }
+						: item);
+					await commitReviewComments(nextComments, "preview");
+				}
+			});
+			previewReviewDrawer.addEventListener("submit", async (event) => {
+				if (event.target.id !== "preview-review-draft-form" || reviewSaving || !previewPendingPin) return;
+				event.preventDefault();
+				const textarea = event.target.querySelector("#preview-review-message");
+				const message = textarea.value.trim();
+				previewPendingPin.message = textarea.value;
+				if (!message) {
+					previewReviewErrorMessage = t.commentRequired;
+					renderPreviewReview();
+					requestAnimationFrame(() => document.querySelector("#preview-review-message")?.focus());
+					return;
+				}
+				const draft = { ...previewPendingPin, message };
+				const now = new Date().toISOString();
+				const comment = {
+					id: globalThis.crypto?.randomUUID?.() ?? `review-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+					source: "preview",
+					captureId: `preview/${draft.pageId}/${draft.viewportWidth}`,
+					pageId: draft.pageId,
+					stateId: "live-preview",
+					project: `live-preview-${draft.viewportWidth}`,
+					device: draft.device,
+					route: draft.route,
+					viewportWidth: draft.viewportWidth,
+					x: draft.x,
+					y: draft.y,
+					message,
+					status: "open",
+					createdAt: now,
+					updatedAt: now,
+				};
+				previewPendingPin = null;
+				const saved = await commitReviewComments([...reviewDocument.comments, comment], "preview");
+				if (!saved) {
+					previewPendingPin = draft;
+					renderPreviewReview();
+					requestAnimationFrame(() => document.querySelector("#preview-review-message")?.focus());
+				}
+			});
+			document.addEventListener("keydown", (event) => {
+				if (event.key !== "Escape" || !previewPicking) return;
+				previewPicking = false;
+				previewDrawerOpen = true;
+				renderPreviewReview();
+			});
+			dialogReviewToggle.addEventListener("click", () => setReviewDrawer(!reviewDrawerOpen));
+			dialogCanvas.addEventListener("click", (event) => {
+				if (!isPickingPin || event.target.closest(".review-pin")) return;
+				const bounds = dialogImage.getBoundingClientRect();
+				if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) return;
+				pendingPin = {
+					x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
+					y: Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)),
+					message: "",
+				};
+				isPickingPin = false;
+				reviewDrawerOpen = true;
+				renderDialogReview();
+				requestAnimationFrame(() => document.querySelector("#review-message")?.focus());
+			});
+			reviewPinLayer.addEventListener("click", (event) => {
+				const pin = event.target.closest("[data-comment-id]");
+				if (!pin) return;
+				setReviewDrawer(true);
+				requestAnimationFrame(() => document.querySelector(`#review-comment-${CSS.escape(pin.dataset.commentId)}`)?.scrollIntoView({ block: "center" }));
+			});
+			reviewDrawer.addEventListener("click", async (event) => {
+				const action = event.target.closest("[data-review-action]");
+				if (!action || reviewSaving) return;
+				if (action.dataset.reviewAction === "add") {
+					pendingPin = null;
+					isPickingPin = !isPickingPin;
+					reviewDrawerOpen = !isPickingPin;
+					reviewErrorMessage = "";
+					renderDialogReview();
+					return;
+				}
+				if (action.dataset.reviewAction === "cancel") {
+					pendingPin = null;
+					isPickingPin = false;
+					reviewErrorMessage = "";
+					renderDialogReview();
+					return;
+				}
+				if (action.dataset.reviewAction === "toggle-status") {
+					const now = new Date().toISOString();
+					const nextComments = reviewDocument.comments.map((comment) => comment.id === action.dataset.commentId
+						? { ...comment, status: comment.status === "open" ? "resolved" : "open", updatedAt: now }
+						: comment);
+					await commitReviewComments(nextComments);
+				}
+			});
+			reviewDrawer.addEventListener("submit", async (event) => {
+				if (event.target.id !== "review-draft-form" || reviewSaving || !pendingPin || !currentCapture) return;
+				event.preventDefault();
+				const textarea = event.target.querySelector("#review-message");
+				const message = textarea.value.trim();
+				pendingPin.message = textarea.value;
+				if (!message) {
+					reviewErrorMessage = t.commentRequired;
+					renderDialogReview();
+					requestAnimationFrame(() => document.querySelector("#review-message")?.focus());
+					return;
+				}
+				const draft = { ...pendingPin, message };
+				const now = new Date().toISOString();
+				const comment = {
+					id: globalThis.crypto?.randomUUID?.() ?? `review-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+					...currentCapture,
+					x: draft.x,
+					y: draft.y,
+					message,
+					status: "open",
+					createdAt: now,
+					updatedAt: now,
+				};
+				pendingPin = null;
+				const saved = await commitReviewComments([...reviewDocument.comments, comment]);
+				if (!saved) {
+					pendingPin = draft;
+					renderDialogReview();
+					requestAnimationFrame(() => document.querySelector("#review-message")?.focus());
+				}
+			});
+			document.querySelector("#dialog-close").addEventListener("click", () => dialog.close());
+			dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+			dialog.addEventListener("close", () => {
+				pendingPin = null;
+				isPickingPin = false;
+				reviewDrawerOpen = false;
+				renderDialogReview();
+			});
+
+			renderPageIndex();
+			renderReview();
+			renderPreviewReview();
+			loadReviewComments();
+		</script>
+	</body>
+</html>
