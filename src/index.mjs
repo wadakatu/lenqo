@@ -1,7 +1,7 @@
 /**
  * Provides editor inference while leaving the configuration unchanged at runtime.
  *
- * @template {import("./index.d.ts").SnaplogueConfig} T
+ * @template {import("./index.d.ts").LenqoConfig} T
  * @param {T} config
  * @returns {T}
  */

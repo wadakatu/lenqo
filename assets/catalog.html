@@ -4,7 +4,7 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="color-scheme" content="light" />
-		<title>Snaplogue</title>
+		<title>Lenqo</title>
 		<style>
 			:root {
 				--ink: #182225;
@@ -318,7 +318,7 @@
 			<aside id="review-drawer" class="review-drawer" aria-label="レビューコメント" hidden></aside>
 		</dialog>
 
-		<script id="catalog-data" type="application/json">__SNAPLOGUE_DATA__</script>
+		<script id="catalog-data" type="application/json">__LENQO_DATA__</script>
 		<script>
 			const data = JSON.parse(document.querySelector("#catalog-data").textContent);
 			const t = data.labels;
@@ -360,7 +360,7 @@
 			let previewReviewErrorMessage = "";
 
 			document.documentElement.lang = data.locale;
-			document.title = `${data.title} — Snaplogue`;
+			document.title = `${data.title} — Lenqo`;
 			document.querySelector("#catalog-title").textContent = data.title;
 			document.querySelector("#mode-switch").setAttribute("aria-label", t.modeLabel);
 			document.querySelector("#page-index").setAttribute("aria-label", t.screenIndex);
@@ -684,7 +684,7 @@
 				renderDialogReview();
 				renderPreviewReview();
 				try {
-					const response = await fetch("/__snaplogue/api/comments", {
+					const response = await fetch("/__lenqo/api/comments", {
 						method: "PUT",
 						headers: { "content-type": "application/json" },
 						body: JSON.stringify(reviewDocument),
@@ -712,7 +712,7 @@
 
 			async function loadReviewComments() {
 				try {
-					const response = await fetch("/__snaplogue/api/comments", { cache: "no-store" });
+					const response = await fetch("/__lenqo/api/comments", { cache: "no-store" });
 					if (!response.ok) throw new Error(t.loadFailed);
 					reviewDocument = await response.json();
 				} catch {

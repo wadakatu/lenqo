@@ -1,4 +1,4 @@
-import { defineConfig } from "snaplogue";
+import { defineConfig } from "lenqo";
 
 export default defineConfig({
 	title: "Basic example",

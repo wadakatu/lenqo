@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("catalog groups captures and keeps the selected page across modes", async ({ page }) => {
 	await page.goto("/catalog/");
-	await expect(page).toHaveTitle("Snaplogue Fixture — Snaplogue");
+	await expect(page).toHaveTitle("Lenqo Fixture — Lenqo");
 	await expect(page.getByRole("heading", { name: "Marketing" })).toBeVisible();
 	await expect(page.locator(".capture")).toHaveCount(3);
 
@@ -28,12 +28,12 @@ test("viewport filtering and mobile full capture stay within the window", async 
 });
 
 test("review writes use revisions to protect comments from another tab", async ({ request }) => {
-	const current = await request.get("/__snaplogue/api/comments");
+	const current = await request.get("/__lenqo/api/comments");
 	expect(current.ok()).toBeTruthy();
 	const document = await current.json();
 	const responses = await Promise.all([
-		request.put("/__snaplogue/api/comments", { data: document }),
-		request.put("/__snaplogue/api/comments", { data: document }),
+		request.put("/__lenqo/api/comments", { data: document }),
+		request.put("/__lenqo/api/comments", { data: document }),
 	]);
 	expect(responses.map((response) => response.status()).sort()).toEqual([200, 409]);
 	const conflict = responses.find((response) => response.status() === 409);

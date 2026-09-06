@@ -39,7 +39,7 @@ async function settleLazyAssets(page) {
 }
 
 /**
- * Captures a full-page PNG using Snaplogue's deterministic file convention.
+ * Captures a full-page PNG using Lenqo's deterministic file convention.
  *
  * @param {import("@playwright/test").Page} page
  * @param {import("@playwright/test").TestInfo} testInfo
@@ -55,13 +55,13 @@ export async function captureVisual(page, testInfo, options) {
 	const pageId = safeSegment(options.pageId, "pageId");
 	const stateId = safeSegment(options.stateId, "stateId");
 	const project = testInfo.project.name.replaceAll(/[^a-zA-Z0-9_-]/g, "-") || "playwright";
-	const root = path.resolve(options.outputDir ?? "test-results/snaplogue/captures");
+	const root = path.resolve(options.outputDir ?? "test-results/lenqo/captures");
 	const directory = path.join(root, pageId, stateId);
 	const filename = `${project}--${viewport.width}x${viewport.height}.png`;
 	const capturePath = path.join(directory, filename);
 	await mkdir(directory, { recursive: true });
 	await page.screenshot({ path: capturePath, fullPage: true, animations: "disabled" });
-	await testInfo.attach(`snaplogue-${pageId}-${stateId}`, {
+	await testInfo.attach(`lenqo-${pageId}-${stateId}`, {
 		path: capturePath,
 		contentType: "image/png",
 	});

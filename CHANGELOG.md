@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Snaplogue are documented here.
+All notable changes to Lenqo are documented here.
 
 ## 0.1.0 — 2026-09-04
 

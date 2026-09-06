@@ -1,40 +1,40 @@
-export type SnaplogueLocale = "en" | "ja";
+export type LenqoLocale = "en" | "ja";
 
-export interface SnaploguePage {
+export interface LenqoPage {
 	id: string;
 	title: string;
 	route: `/${string}`;
 	states?: Record<string, string>;
 }
 
-export interface SnaplogueGroup {
+export interface LenqoGroup {
 	id: string;
 	title: string;
-	pages: SnaploguePage[];
+	pages: LenqoPage[];
 }
 
-export interface SnaploguePaths {
+export interface LenqoPaths {
 	captures?: string;
 	catalog?: string;
 	reviews?: string;
 	runtime?: string;
 }
 
-export interface SnaplogueServerOptions {
+export interface LenqoServerOptions {
 	host?: string;
 	port?: number;
 	allowRemote?: boolean;
 }
 
-export interface SnaplogueConfig {
+export interface LenqoConfig {
 	title?: string;
-	locale?: SnaplogueLocale;
+	locale?: LenqoLocale;
 	previewOrigin?: `http://${string}`;
-	groups?: SnaplogueGroup[];
+	groups?: LenqoGroup[];
 	/** @deprecated Prefer groups for scalable navigation. */
-	pages?: SnaploguePage[];
-	paths?: SnaploguePaths;
-	server?: SnaplogueServerOptions;
+	pages?: LenqoPage[];
+	paths?: LenqoPaths;
+	server?: LenqoServerOptions;
 }
 
-export declare function defineConfig<T extends SnaplogueConfig>(config: T): T;
+export declare function defineConfig<T extends LenqoConfig>(config: T): T;

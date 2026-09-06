@@ -19,8 +19,8 @@ export default defineConfig({
 			reuseExistingServer: !process.env.CI,
 		},
 		{
-			command: "node bin/snaplogue.mjs serve --foreground --root . --config tests/fixtures/snaplogue.config.mjs",
-			url: "http://127.0.0.1:4410/__snaplogue/health",
+			command: "node bin/lenqo.mjs serve --foreground --root . --config tests/fixtures/lenqo.config.mjs",
+			url: "http://127.0.0.1:4410/__lenqo/health",
 			reuseExistingServer: !process.env.CI,
 		},
 	],

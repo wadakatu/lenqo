@@ -1,5 +1,5 @@
 import { test } from "@playwright/test";
-import { captureVisual } from "snaplogue/playwright";
+import { captureVisual } from "lenqo/playwright";
 
 test("home", async ({ page }, testInfo) => {
 	await page.goto("/");

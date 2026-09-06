@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Snaplogue.
+Thanks for helping improve Lenqo.
 
 ## Local setup
 
@@ -11,7 +11,7 @@ npx playwright install chromium
 npm test
 ```
 
-The end-to-end suite generates fixture captures, starts a small preview site, launches Snaplogue in the foreground, and exercises both Review and Preview modes.
+The end-to-end suite generates fixture captures, starts a small preview site, launches Lenqo in the foreground, and exercises both Review and Preview modes.
 
 ## Pull requests
 

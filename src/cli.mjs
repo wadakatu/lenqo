@@ -32,15 +32,15 @@ function optionValue(name) {
 }
 
 function printHelp() {
-	console.log(`Snaplogue — capture every state, review it live.
+	console.log(`Lenqo — capture every state, review it live.
 
 Usage:
-  snaplogue init [--root <directory>]
-  snaplogue build [--config <file>] [--root <directory>]
-  snaplogue clean [--config <file>] [--root <directory>]
-  snaplogue serve [--background] [--config <file>] [--root <directory>]
-  snaplogue status [--config <file>] [--root <directory>]
-  snaplogue stop [--config <file>] [--root <directory>]
+  lenqo init [--root <directory>]
+  lenqo build [--config <file>] [--root <directory>]
+  lenqo clean [--config <file>] [--root <directory>]
+  lenqo serve [--background] [--config <file>] [--root <directory>]
+  lenqo status [--config <file>] [--root <directory>]
+  lenqo stop [--config <file>] [--root <directory>]
 
 Options:
   --config <file>    Config path relative to the project root
@@ -52,7 +52,7 @@ Options:
 
 const requestedRoot = optionValue("--root") ?? process.cwd();
 const projectRoot = path.resolve(requestedRoot);
-const requestedConfig = optionValue("--config") ?? "snaplogue.config.mjs";
+const requestedConfig = optionValue("--config") ?? "lenqo.config.mjs";
 const configPath = path.resolve(projectRoot, requestedConfig);
 
 function resolveProjectPath(value, fallback) {
@@ -68,7 +68,7 @@ async function initializeProject() {
 	if (existsSync(configPath) && !flags.has("--force")) {
 		throw new Error(`${path.relative(projectRoot, configPath)} already exists.`);
 	}
-	const source = `import { defineConfig } from "snaplogue";
+	const source = `import { defineConfig } from "lenqo";
 
 export default defineConfig({
 	title: "Design review",
@@ -88,7 +88,7 @@ export default defineConfig({
 	await mkdir(path.dirname(configPath), { recursive: true });
 	await writeFile(configPath, source, { flag: flags.has("--force") ? "w" : "wx" });
 	console.log(`Created ${configPath}`);
-	console.log("Next: capture screenshots with the snaplogue/playwright helper, then run `snaplogue serve`.");
+	console.log("Next: capture screenshots with the lenqo/playwright helper, then run `lenqo serve`.");
 }
 
 if (["help", "--help", "-h"].includes(command) || flags.has("--help")) {
@@ -105,14 +105,14 @@ if (command === "init") {
 }
 
 if (!existsSync(configPath)) {
-	throw new Error(`Snaplogue config not found: ${configPath}\nRun \`snaplogue init\` first.`);
+	throw new Error(`Lenqo config not found: ${configPath}\nRun \`lenqo init\` first.`);
 }
 
 const importedConfig = (await import(`${pathToFileURL(configPath).href}?t=${Date.now()}`)).default;
 
 function normalizeConfig(input) {
 	if (!input || typeof input !== "object" || Array.isArray(input)) {
-		throw new Error("Snaplogue config must export an object.");
+		throw new Error("Lenqo config must export an object.");
 	}
 	const legacyPages = Array.isArray(input.pages) ? input.pages : [];
 	const groups = Array.isArray(input.groups) && input.groups.length > 0
@@ -186,12 +186,12 @@ function normalizeConfig(input) {
 }
 
 const config = normalizeConfig(importedConfig);
-const capturesRoot = resolveProjectPath(config.paths.captures, "test-results/snaplogue/captures");
-const catalogRoot = resolveProjectPath(config.paths.catalog, "test-results/snaplogue/catalog");
+const capturesRoot = resolveProjectPath(config.paths.captures, "test-results/lenqo/captures");
+const catalogRoot = resolveProjectPath(config.paths.catalog, "test-results/lenqo/catalog");
 const catalogPath = path.join(catalogRoot, "index.html");
-const reviewPath = resolveProjectPath(config.paths.reviews, ".snaplogue/reviews.json");
+const reviewPath = resolveProjectPath(config.paths.reviews, ".lenqo/reviews.json");
 const reviewRoot = path.dirname(reviewPath);
-const runtimeRoot = resolveProjectPath(config.paths.runtime, ".snaplogue/run");
+const runtimeRoot = resolveProjectPath(config.paths.runtime, ".lenqo/run");
 const templatePath = path.join(packageRoot, "assets", "catalog.html");
 const pidPath = path.join(runtimeRoot, "server.pid");
 const logPath = path.join(runtimeRoot, "server.log");
@@ -199,7 +199,7 @@ const host = config.server?.host ?? "127.0.0.1";
 const port = config.server?.port ?? 4400;
 const urlHost = host === "::1" ? "[::1]" : host;
 const catalogURL = `http://${urlHost}:${port}/catalog/`;
-const healthURL = `http://${urlHost}:${port}/__snaplogue/health`;
+const healthURL = `http://${urlHost}:${port}/__lenqo/health`;
 
 const mimeTypes = new Map([
 	[".html", "text/html; charset=utf-8"],
@@ -294,10 +294,10 @@ const interfaceMessages = {
 		emptyPreviewComments: "No comments for this route and viewport yet.",
 		saveFailed: "The comment could not be saved.",
 		loadFailed: "The review store could not be loaded.",
-		serveHint: "Open the catalog with `snaplogue serve` to save comments.",
+		serveHint: "Open the catalog with `lenqo serve` to save comments.",
 		selectPagePlaceholder: "Select a page",
 		commentRequired: "Enter a comment.",
-		storageLabel: "LOCAL · .snaplogue/reviews.json",
+		storageLabel: "LOCAL · .lenqo/reviews.json",
 		captureAlt: "{page}, {state}, {width}px viewport",
 		ungrouped: "Ungrouped",
 		loadingCaptures: "Loading captures",
@@ -357,10 +357,10 @@ const interfaceMessages = {
 		emptyPreviewComments: "このページ・表示幅のコメントはまだありません。",
 		saveFailed: "コメントを保存できませんでした。",
 		loadFailed: "レビュー保存領域を読み込めませんでした。",
-		serveHint: "保存機能を使うには `snaplogue serve` でカタログを開いてください。",
+		serveHint: "保存機能を使うには `lenqo serve` でカタログを開いてください。",
 		selectPagePlaceholder: "ページを選択",
 		commentRequired: "コメントを入力してください。",
-		storageLabel: "LOCAL · .snaplogue/reviews.json",
+		storageLabel: "LOCAL · .lenqo/reviews.json",
 		captureAlt: "{page}の{state}、{width}px表示",
 		ungrouped: "未分類",
 		loadingCaptures: "キャプチャを読み込み中",
@@ -462,7 +462,7 @@ async function buildCatalog() {
 	};
 	const template = await readFile(templatePath, "utf8");
 	const serialized = JSON.stringify(manifest).replaceAll("<", "\\u003c");
-	const html = template.replace("__SNAPLOGUE_DATA__", serialized);
+	const html = template.replace("__LENQO_DATA__", serialized);
 
 	await mkdir(catalogRoot, { recursive: true });
 	const temporaryPath = `${catalogPath}.tmp`;
@@ -641,7 +641,7 @@ async function handleReviewAPI(request, response) {
 	try {
 		const origin = request.headers.origin;
 		if (origin && origin !== new URL(catalogURL).origin) {
-			sendJSON(response, 403, { error: "Review writes are limited to this Snaplogue origin." });
+			sendJSON(response, 403, { error: "Review writes are limited to this Lenqo origin." });
 			return;
 		}
 		if (request.method === "GET") {
@@ -705,12 +705,12 @@ async function serveForeground() {
 
 	const server = http.createServer(async (request, response) => {
 		const requestURL = new URL(request.url ?? "/", catalogURL);
-		if (requestURL.pathname === "/__snaplogue/health") {
+		if (requestURL.pathname === "/__lenqo/health") {
 			response.writeHead(200, { "content-type": "application/json" });
 			response.end(JSON.stringify({ ok: true, pid: process.pid }));
 			return;
 		}
-		if (requestURL.pathname === "/__snaplogue/api/comments") {
+		if (requestURL.pathname === "/__lenqo/api/comments") {
 			await handleReviewAPI(request, response);
 			return;
 		}
@@ -741,7 +741,7 @@ async function serveForeground() {
 		try {
 			await unlink(pidPath);
 		} catch {}
-		console.error(`Snaplogue could not listen on ${host}:${port}: ${error.message}`);
+		console.error(`Lenqo could not listen on ${host}:${port}: ${error.message}`);
 		process.exitCode = 1;
 	});
 	server.on("upgrade", proxyUpgrade);
@@ -758,7 +758,7 @@ async function serveForeground() {
 
 	server.listen(port, host, async () => {
 		await writeFile(pidPath, String(process.pid));
-		console.log(`Snaplogue → ${catalogURL}`);
+		console.log(`Lenqo → ${catalogURL}`);
 	});
 }
 
@@ -789,7 +789,7 @@ async function waitForServer(timeoutMs = 5000) {
 async function serveBackground() {
 	const runningServer = await waitForServer(300);
 	if (runningServer?.pid) {
-		console.log(`Snaplogue is already running (PID ${runningServer.pid}) → ${catalogURL}`);
+		console.log(`Lenqo is already running (PID ${runningServer.pid}) → ${catalogURL}`);
 		return;
 	}
 
@@ -812,16 +812,16 @@ async function serveBackground() {
 	child.unref();
 
 	if (!(await waitForServer())) {
-		throw new Error(`Snaplogue did not start. Check ${logPath}`);
+		throw new Error(`Lenqo did not start. Check ${logPath}`);
 	}
-	console.log(`Snaplogue started (PID ${child.pid}) → ${catalogURL}`);
+	console.log(`Lenqo started (PID ${child.pid}) → ${catalogURL}`);
 }
 
 async function stopServer() {
 	const runningServer = await waitForServer(300);
 	const pid = runningServer?.pid ?? (await readRunningPid());
 	if (!pid) {
-		console.log("Snaplogue is not running.");
+		console.log("Lenqo is not running.");
 		try {
 			await unlink(pidPath);
 		} catch {}
@@ -833,20 +833,20 @@ async function stopServer() {
 		try {
 			process.kill(pid, 0);
 		} catch {
-			console.log(`Snaplogue stopped (PID ${pid}).`);
+			console.log(`Lenqo stopped (PID ${pid}).`);
 			return;
 		}
 	}
-	throw new Error(`Snaplogue process ${pid} did not stop.`);
+	throw new Error(`Lenqo process ${pid} did not stop.`);
 }
 
 async function showStatus() {
 	const runningServer = await waitForServer(300);
 	if (runningServer?.pid) {
-		console.log(`Snaplogue is running (PID ${runningServer.pid}) → ${catalogURL}`);
+		console.log(`Lenqo is running (PID ${runningServer.pid}) → ${catalogURL}`);
 		return;
 	}
-	console.log("Snaplogue is not running.");
+	console.log("Lenqo is not running.");
 	process.exitCode = 1;
 }
 

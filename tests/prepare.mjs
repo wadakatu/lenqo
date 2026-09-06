@@ -23,7 +23,7 @@ try {
 			main{min-height:1500px;padding:12vh 8vw;background:linear-gradient(160deg,transparent 55%,${capture.accent} 55%)}
 			h1{max-width:900px;margin:0;font:600 clamp(52px,9vw,128px)/.9 Georgia,serif;letter-spacing:-.06em}
 			p{max-width:540px;margin-top:40px}
-		</style><header>Snaplogue fixture</header><main><h1>${capture.pageId}<br>${capture.stateId}</h1><p>A deterministic full-page fixture used to review layout, viewport filtering, and pinned feedback.</p></main>`);
+		</style><header>Lenqo fixture</header><main><h1>${capture.pageId}<br>${capture.stateId}</h1><p>A deterministic full-page fixture used to review layout, viewport filtering, and pinned feedback.</p></main>`);
 		const directory = path.join(captureRoot, capture.pageId, capture.stateId);
 		await mkdir(directory, { recursive: true });
 		await page.screenshot({

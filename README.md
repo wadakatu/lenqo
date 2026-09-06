@@ -1,6 +1,6 @@
-# Snaplogue
+# Lenqo
 
-Snaplogue turns Playwright screenshots and a running local site into one focused visual-review workspace. Browse captures by product area, page, and state; compare desktop and mobile; open a full capture; then pin review comments directly on the image or live preview.
+Lenqo turns Playwright screenshots and a running local site into one focused visual-review workspace. Browse captures by product area, page, and state; compare desktop and mobile; open a full capture; then pin review comments directly on the image or live preview.
 
 It is local-first: no account, hosted dashboard, database, or browser extension is required.
 
@@ -23,17 +23,17 @@ It is local-first: no account, hosted dashboard, database, or browser extension 
 ## Install
 
 ```sh
-npm install --save-dev snaplogue @playwright/test
+npm install --save-dev lenqo @playwright/test
 npx playwright install chromium
-npx snaplogue init
+npx lenqo init
 ```
 
 ## Configure
 
-Create `snaplogue.config.mjs`:
+Create `lenqo.config.mjs`:
 
 ```js
-import { defineConfig } from "snaplogue";
+import { defineConfig } from "lenqo";
 
 export default defineConfig({
 	title: "Acme design review",
@@ -66,20 +66,20 @@ Paths are relative to the project root and can be overridden:
 
 ```js
 paths: {
-	captures: "test-results/snaplogue/captures",
-	catalog: "test-results/snaplogue/catalog",
-	reviews: ".snaplogue/reviews.json",
-	runtime: ".snaplogue/run",
+	captures: "test-results/lenqo/captures",
+	catalog: "test-results/lenqo/catalog",
+	reviews: ".lenqo/reviews.json",
+	runtime: ".lenqo/run",
 }
 ```
 
-Keep the server on a loopback host. Binding to another interface requires the explicit `server.allowRemote: true` escape hatch; Snaplogue is a development tool, not an authenticated production service.
+Keep the server on a loopback host. Binding to another interface requires the explicit `server.allowRemote: true` escape hatch; Lenqo is a development tool, not an authenticated production service.
 
 ## Capture with Playwright
 
 ```js
 import { test } from "@playwright/test";
-import { captureVisual } from "snaplogue/playwright";
+import { captureVisual } from "lenqo/playwright";
 
 test("home", async ({ page }, testInfo) => {
 	await page.goto("/");
@@ -103,27 +103,27 @@ Then capture and open the workspace:
 
 ```sh
 npx playwright test tests/visual.spec.js
-npx snaplogue serve
+npx lenqo serve
 ```
 
-Snaplogue opens at `http://127.0.0.1:4400/catalog/` by default. Start your application separately at `previewOrigin` to enable Preview mode.
+Lenqo opens at `http://127.0.0.1:4400/catalog/` by default. Start your application separately at `previewOrigin` to enable Preview mode.
 
 ## Commands
 
 ```text
-snaplogue init [--root <directory>]
-snaplogue clean [--config <file>] [--root <directory>]
-snaplogue build [--config <file>] [--root <directory>]
-snaplogue serve [--background] [--config <file>] [--root <directory>]
-snaplogue status [--config <file>] [--root <directory>]
-snaplogue stop [--config <file>] [--root <directory>]
+lenqo init [--root <directory>]
+lenqo clean [--config <file>] [--root <directory>]
+lenqo build [--config <file>] [--root <directory>]
+lenqo serve [--background] [--config <file>] [--root <directory>]
+lenqo status [--config <file>] [--root <directory>]
+lenqo stop [--config <file>] [--root <directory>]
 ```
 
 `build` writes the catalog HTML file, while `serve` also maps capture assets, enables the live proxy, and persists comments. Use the served workspace for review. Commit the review JSON only when feedback belongs in source control; otherwise ignore the configured review path in the consuming project.
 
 ## Design principles
 
-Snaplogue separates evidence from discussion. Playwright owns repeatable browser state and screenshot creation; Snaplogue owns navigation, inspection, and review metadata. Generated captures remain disposable, while comments stay in a small human-readable document.
+Lenqo separates evidence from discussion. Playwright owns repeatable browser state and screenshot creation; Lenqo owns navigation, inspection, and review metadata. Generated captures remain disposable, while comments stay in a small human-readable document.
 
 The UI deliberately avoids dashboard chrome and decorative AI-style gradients. A compact screen index, editorial contact sheet, blue review pins, and lime local-status signal keep attention on the product being reviewed.
 
@@ -139,4 +139,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the fixture and release workflow.
 
 ## License
 
-MIT © 2026 Snaplogue contributors
+MIT © 2026 Lenqo contributors

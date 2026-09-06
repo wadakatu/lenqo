@@ -1,6 +1,6 @@
 # Code of conduct
 
-Snaplogue is built through respectful, practical collaboration.
+Lenqo is built through respectful, practical collaboration.
 
 Contributors are expected to welcome people of different backgrounds and experience levels, discuss ideas rather than personalities, give actionable feedback, and respect privacy. Harassment, intimidation, discrimination, and publishing another person's private information are not acceptable.
 

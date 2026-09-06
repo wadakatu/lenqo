@@ -1,7 +1,7 @@
 import { defineConfig } from "../../src/index.mjs";
 
 export default defineConfig({
-	title: "Snaplogue Fixture",
+	title: "Lenqo Fixture",
 	locale: "en",
 	previewOrigin: "http://127.0.0.1:4310",
 	server: {

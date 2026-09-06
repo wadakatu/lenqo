@@ -10,4 +10,4 @@ Please report vulnerabilities privately through the security advisory feature of
 
 ## Local-server boundary
 
-Snaplogue is designed for trusted local development. It binds to `127.0.0.1` by default and rejects non-loopback hosts unless `server.allowRemote` is explicitly enabled. The review endpoint is not an authenticated multi-user service and should not be exposed to an untrusted network or deployed publicly.
+Lenqo is designed for trusted local development. It binds to `127.0.0.1` by default and rejects non-loopback hosts unless `server.allowRemote` is explicitly enabled. The review endpoint is not an authenticated multi-user service and should not be exposed to an untrusted network or deployed publicly.
