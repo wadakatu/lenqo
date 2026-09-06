@@ -20,17 +20,41 @@ It is local-first: no account, hosted dashboard, database, or browser extension 
 - Node.js 22 or newer. Node.js 24 is recommended.
 - `@playwright/test` 1.50 or newer.
 
-## Install
+## Let your AI agent set it up
+
+Paste this into your coding agent:
+
+> Set up Lenqo in this application using https://github.com/wadakatu/lenqo/blob/main/docs/agents.md. Use the existing package manager and app server. Create desktop and mobile captures, preserve existing tests and review comments, and give me the running catalog URL so I can review the design myself.
+
+The [agent guide](docs/agents.md) includes the complete installation, diagnostics, feedback workflow, and a short pointer for your project's agent instructions. After installation, `npx lenqo guide` prints the same guide offline.
+
+## First review
+
+Run these commands from your application's directory. With an existing pnpm, Yarn, or Bun project, use that package manager and preserve its lockfile.
 
 ```sh
 npm install --save-dev lenqo @playwright/test
+npx lenqo init --origin http://127.0.0.1:3000
 npx playwright install chromium
-npx lenqo init
 ```
 
-## Configure
+Use your app's real local origin, such as `http://127.0.0.1:4321` for an Astro app. Add `--locale ja` for a Japanese catalog. `init` generates the Lenqo config, a dedicated Playwright config, and a capture test for each configured page, with desktop and mobile Chromium projects. It appends local-data paths to `.gitignore`. Existing target files are never overwritten. It does not change your package scripts or start your application.
 
-Create `lenqo.config.mjs`:
+Start your application's development server with its usual command, then:
+
+```sh
+npx lenqo doctor
+npx playwright test --config playwright.lenqo.config.mjs
+npx lenqo serve --background
+```
+
+Open **[http://127.0.0.1:4400/catalog/](http://127.0.0.1:4400/catalog/)**. Review compares screenshots; Preview lets you navigate your running app. Both support pinned feedback. Keep the app server and Lenqo running while reviewing; `npx lenqo stop` stops Lenqo only.
+
+For repeatable installs, commit your lockfile. The starter requires only Chromium. Mobile is an emulation, not a physical-device or Safari test.
+
+## Configure and extend
+
+Edit the generated `lenqo.config.mjs`:
 
 ```js
 import { defineConfig } from "lenqo";
@@ -77,6 +101,8 @@ Keep the server on a loopback host. Binding to another interface requires the ex
 
 ## Capture with Playwright
 
+The starter captures every configured page's default state. For interactive states or existing Playwright suites, write explicit tests using the helper below. Use `npx lenqo init --config-only` if you only need a Lenqo config.
+
 ```js
 import { test } from "@playwright/test";
 import { captureVisual } from "lenqo/playwright";
@@ -92,6 +118,8 @@ test("home", async ({ page }, testInfo) => {
 
 Use Playwright projects for viewport variants. The project name and viewport are encoded in each filename, while `pageId` and `stateId` create the directory hierarchy.
 
+In your existing Playwright config, also set `use.baseURL` to your app's origin. Keep `outputDir` separate from persistent captures; Playwright cleans its output directory on each run. If you customize `paths.captures`, pass the same path as `outputDir` to `captureVisual`. The starter handles these settings for you.
+
 ```js
 projects: [
 	{ name: "desktop", use: { viewport: { width: 1440, height: 900 } } },
@@ -106,12 +134,14 @@ npx playwright test tests/visual.spec.js
 npx lenqo serve
 ```
 
-Lenqo opens at `http://127.0.0.1:4400/catalog/` by default. Start your application separately at `previewOrigin` to enable Preview mode.
+Lenqo serves at `http://127.0.0.1:4400/catalog/` by default; it does not automatically open a browser. Start your application separately at `previewOrigin` to enable Preview mode.
 
 ## Commands
 
 ```text
-lenqo init [--root <directory>]
+lenqo init [--origin <url>] [--locale en|ja] [--config-only] [--json]
+lenqo guide
+lenqo doctor [--json] [--config <file>] [--root <directory>]
 lenqo clean [--config <file>] [--root <directory>]
 lenqo build [--config <file>] [--root <directory>]
 lenqo serve [--background] [--config <file>] [--root <directory>]
@@ -120,6 +150,19 @@ lenqo stop [--config <file>] [--root <directory>]
 ```
 
 `build` writes the catalog HTML file, while `serve` also maps capture assets, enables the live proxy, and persists comments. Use the served workspace for review. Commit the review JSON only when feedback belongs in source control; otherwise ignore the configured review path in the consuming project.
+
+`init`, `doctor`, `build`, and `status` support `--json` for agents and automation. `init` also accepts `--root` and `--config`. `doctor` checks local dependencies, launches Chromium, validates the config, and probes the app origin; failed checks include a suggested action and exit nonzero. It does not install anything. After UI changes, recapture and run `lenqo build`; reload the catalog for the latest images. See [the agent guide](docs/agents.md) for existing-suite integration, feedback handling, and the JSON contract.
+
+## Troubleshooting
+
+| Symptom | Action |
+| --- | --- |
+| `Cannot find package lenqo` from a config | Install Lenqo locally in the application, not only via a temporary `npx` invocation. |
+| Chromium cannot launch | Run `npx playwright install chromium`; on Linux use `--with-deps`. Check browser sandbox permissions if binaries are already installed. |
+| App unavailable / Preview fails | Start the app and match `previewOrigin` to its actual loopback HTTP origin. |
+| `No captures found` | Run the capture tests with `--config playwright.lenqo.config.mjs`, then build/serve. |
+| Port 4400 occupied | Stop the existing Lenqo server or change `server.port`; run `status --json`. |
+| Init reports a conflict | Preserve existing files; follow `lenqo guide` to integrate instead of overwriting. |
 
 ## Design principles
 
@@ -133,6 +176,7 @@ The UI deliberately avoids dashboard chrome and decorative AI-style gradients. A
 mise install
 npm install
 npm test
+npm run test:install
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the fixture and release workflow.

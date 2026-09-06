@@ -13,6 +13,8 @@ npm test
 
 The end-to-end suite generates fixture captures, starts a small preview site, launches Lenqo in the foreground, and exercises both Review and Preview modes.
 
+For onboarding and distribution changes, also run `npm run test:install`. It packs the package, installs the tarball into a temporary consumer using the npm cache, and exercises init, doctor, generated desktop/mobile capture tests, build, and the served catalog. Run `npm ci` and install Chromium first to populate dependencies and the browser. Artifacts remain in the printed temporary directory for inspection.
+
 ## Pull requests
 
 - Keep the package dependency-light and local-first.

@@ -16,26 +16,38 @@ import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseArgs } from "node:util";
+import { initializeProject, diagnose } from "./onboarding.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const packageRoot = path.resolve(path.dirname(scriptPath), "..");
 const packageVersion = JSON.parse(await readFile(path.join(packageRoot, "package.json"), "utf8")).version;
 const cliArgs = process.argv.slice(2);
 const command = cliArgs[0] ?? "serve";
-const flags = new Set(cliArgs.slice(1));
+const { values } = parseArgs({ args: cliArgs.slice(1), options: {
+	root: { type: "string" }, config: { type: "string" },
+	origin: { type: "string" }, locale: { type: "string" },
+	"config-only": { type: "boolean" }, json: { type: "boolean" },
+	background: { type: "boolean" }, foreground: { type: "boolean" },
+	help: { type: "boolean", short: "h" }, version: { type: "boolean", short: "v" },
+} });
+const flags = new Set(Object.entries(values).filter(([, value]) => value === true).map(([key]) => `--${key}`));
 
 function optionValue(name) {
-	const exactIndex = cliArgs.indexOf(name);
-	if (exactIndex >= 0) return cliArgs[exactIndex + 1];
-	const prefixed = cliArgs.find((argument) => argument.startsWith(`${name}=`));
-	return prefixed?.slice(name.length + 1);
+	return values[name.replace(/^--/, "")];
+}
+
+function report(result, message) {
+	console.log(values.json ? JSON.stringify({ schemaVersion: 1, command, ...result }) : message);
 }
 
 function printHelp() {
 	console.log(`Lenqo — capture every state, review it live.
 
 Usage:
-  lenqo init [--root <directory>]
+  lenqo init [--origin <url>] [--locale en|ja] [--config-only] [--json]
+  lenqo guide
+  lenqo doctor [--json] [--config <file>] [--root <directory>]
   lenqo build [--config <file>] [--root <directory>]
   lenqo clean [--config <file>] [--root <directory>]
   lenqo serve [--background] [--config <file>] [--root <directory>]
@@ -46,6 +58,10 @@ Options:
   --config <file>    Config path relative to the project root
   --root <directory> Project root (defaults to the current directory)
   --background       Run the review server in the background
+  --origin <url>     App's loopback HTTP origin for init (default: http://127.0.0.1:3000)
+  --locale en|ja     Catalog language for init (default: en)
+  --config-only      Generate only lenqo.config.mjs for an existing capture setup
+  --json             Machine-readable output for init, doctor, build, status
   --help             Show this help
   --version          Show the installed version`);
 }
@@ -64,33 +80,6 @@ function resolveProjectPath(value, fallback) {
 	return resolved;
 }
 
-async function initializeProject() {
-	if (existsSync(configPath) && !flags.has("--force")) {
-		throw new Error(`${path.relative(projectRoot, configPath)} already exists.`);
-	}
-	const source = `import { defineConfig } from "lenqo";
-
-export default defineConfig({
-	title: "Design review",
-	locale: "en",
-	previewOrigin: "http://127.0.0.1:3000",
-	groups: [
-		{
-			id: "product",
-			title: "Product",
-			pages: [
-				{ id: "home", title: "Home", route: "/", states: { default: "Default" } },
-			],
-		},
-	],
-});
-`;
-	await mkdir(path.dirname(configPath), { recursive: true });
-	await writeFile(configPath, source, { flag: flags.has("--force") ? "w" : "wx" });
-	console.log(`Created ${configPath}`);
-	console.log("Next: capture screenshots with the lenqo/playwright helper, then run `lenqo serve`.");
-}
-
 if (["help", "--help", "-h"].includes(command) || flags.has("--help")) {
 	printHelp();
 	process.exit(0);
@@ -99,9 +88,32 @@ if (["version", "--version", "-v"].includes(command) || flags.has("--version")) 
 	console.log(packageVersion);
 	process.exit(0);
 }
+const allowedOptions = {
+	init: ["root", "config", "origin", "locale", "config-only", "json"],
+	guide: [], doctor: ["root", "config", "json"], build: ["root", "config", "json"],
+	status: ["root", "config", "json"], clean: ["root", "config"],
+	serve: ["root", "config", "background", "foreground"], stop: ["root", "config"],
+};
+if (!allowedOptions[command]) throw new Error(`Unknown command: ${command}. Run lenqo --help.`);
+for (const key of Object.keys(values)) {
+	if (!allowedOptions[command].includes(key)) throw new Error(`--${key} is not supported by ${command}. Run lenqo --help.`);
+}
+if (values.background && values.foreground) throw new Error("Choose either --background or --foreground.");
 if (command === "init") {
-	await initializeProject();
+	const result = await initializeProject({ root: projectRoot, configPath, origin: values.origin ?? "http://127.0.0.1:3000", locale: values.locale ?? "en", configOnly: values["config-only"] });
+	report({ ok: true, ...result }, `Created:\n${result.created.join("\n")}\nUpdated: ${result.updated.join(", ") || "none"}\n\nNext:\n${result.nextSteps.join("\n")}`);
 	process.exit(0);
+}
+if (command === "guide") {
+	console.log(await readFile(path.join(packageRoot, "docs", "agents.md"), "utf8"));
+	process.exit(0);
+}
+if (!["doctor", "build", "clean", "serve", "status", "stop"].includes(command)) throw new Error(`Unknown command: ${command}. Run lenqo --help.`);
+if (values.json && !["doctor", "build", "status"].includes(command)) throw new Error("--json is supported by init, doctor, build, and status.");
+if (command === "doctor") {
+	const result = await diagnose({ root: projectRoot, configPath, normalizeConfig });
+	report(result, result.checks.map((check) => `${check.status.toUpperCase()} ${check.id}: ${check.message}${check.status === "fail" && check.action ? `\n  Next: ${check.action}` : ""}`).join("\n"));
+	process.exit(result.ok ? 0 : 1);
 }
 
 if (!existsSync(configPath)) {
@@ -158,6 +170,8 @@ function normalizeConfig(input) {
 	if (new Set(groupIds).size !== groupIds.length) {
 		throw new Error("Group ids must be unique.");
 	}
+	const pageIds = normalizedGroups.flatMap((group) => group.pages.map((page) => page.id));
+	if (new Set(pageIds).size !== pageIds.length) throw new Error("Page ids must be unique across all groups.");
 	const previewOrigin = new URL(input.previewOrigin ?? "http://127.0.0.1:3000");
 	if (previewOrigin.protocol !== "http:") {
 		throw new Error("previewOrigin must be a local http URL.");
@@ -469,7 +483,7 @@ async function buildCatalog() {
 	await writeFile(temporaryPath, html);
 	await rename(temporaryPath, catalogPath);
 
-	console.log(`Built ${manifest.captureCount} captures → ${catalogPath}`);
+	report({ ok: true, captureCount: manifest.captureCount, catalogPath, catalogURL }, `Built ${manifest.captureCount} captures → ${catalogPath}`);
 	return manifest;
 }
 
@@ -778,7 +792,7 @@ async function waitForServer(timeoutMs = 5000) {
 	const startedAt = Date.now();
 	while (Date.now() - startedAt < timeoutMs) {
 		try {
-			const response = await fetch(healthURL);
+			const response = await fetch(healthURL, { signal: AbortSignal.timeout(Math.max(1, timeoutMs - (Date.now() - startedAt))) });
 			if (response.ok) return await response.json();
 		} catch {}
 		await new Promise((resolve) => setTimeout(resolve, 100));
@@ -843,10 +857,10 @@ async function stopServer() {
 async function showStatus() {
 	const runningServer = await waitForServer(300);
 	if (runningServer?.pid) {
-		console.log(`Lenqo is running (PID ${runningServer.pid}) → ${catalogURL}`);
+		report({ ok: true, running: true, pid: runningServer.pid, catalogURL }, `Lenqo is running (PID ${runningServer.pid}) → ${catalogURL}`);
 		return;
 	}
-	console.log("Lenqo is not running.");
+	report({ ok: false, running: false, catalogURL }, "Lenqo is not running. Check local network permissions if the server is already running.");
 	process.exitCode = 1;
 }
 

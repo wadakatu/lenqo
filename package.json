@@ -2,6 +2,9 @@
 	"name": "lenqo",
 	"version": "0.1.0",
 	"description": "Local-first visual review for Playwright captures and live previews.",
+	"repository": { "type": "git", "url": "git+https://github.com/wadakatu/lenqo.git" },
+	"homepage": "https://github.com/wadakatu/lenqo#readme",
+	"bugs": { "url": "https://github.com/wadakatu/lenqo/issues" },
 	"keywords": [
 		"playwright",
 		"visual-review",
@@ -13,6 +16,7 @@
 		"lenqo": "./bin/lenqo.mjs"
 	},
 	"exports": {
+		"./package.json": "./package.json",
 		".": {
 			"types": "./src/index.d.ts",
 			"import": "./src/index.mjs"
@@ -26,6 +30,7 @@
 		"assets",
 		"bin",
 		"src",
+		"docs",
 		"CHANGELOG.md",
 		"LICENSE",
 		"README.md"
@@ -34,7 +39,8 @@
 		"node": ">=22"
 	},
 	"scripts": {
-		"check": "node --check src/cli.mjs && node --check src/index.mjs && node --check src/playwright.mjs && node --check bin/lenqo.mjs",
+		"check": "node --check src/cli.mjs && node --check src/onboarding.mjs && node --check src/index.mjs && node --check src/playwright.mjs && node --check bin/lenqo.mjs",
+		"test:install": "node tests/install-smoke.mjs",
 		"test": "npm run test:unit && npm run test:e2e",
 		"test:unit": "node --test tests/*.test.mjs",
 		"test:prepare": "node tests/prepare.mjs",
