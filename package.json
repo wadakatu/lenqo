@@ -13,7 +13,7 @@
 	],
 	"type": "module",
 	"bin": {
-		"lenqo": "./bin/lenqo.mjs"
+		"lenqo": "bin/lenqo.mjs"
 	},
 	"exports": {
 		"./package.json": "./package.json",

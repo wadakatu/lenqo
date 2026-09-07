@@ -34,6 +34,7 @@ try {
 	if (!fromRegistry) await npm(["pack", "--pack-destination", workspace], root);
 	await writeFile(path.join(workspace, "package.json"), '{"name":"lenqo-fresh-consumer","private":true}');
 	await npm(["install", ...(fromRegistry ? [] : ["--offline"]), "--save-dev", "--no-audit", "--no-fund", fromRegistry ? `lenqo@${metadata.version}` : path.join(workspace, `lenqo-${metadata.version}.tgz`), `@playwright/test@${metadata.devDependencies["@playwright/test"]}`]);
+	assert.equal((await npm(["exec", "--offline", "--", "lenqo", "--version"])).trim(), metadata.version);
 	const initialized = JSON.parse(await cli("init", "--origin", origin, "--locale", "ja", "--json"));
 	assert.equal(initialized.ok, true);
 	assert.match(await cli("guide"), /first human review/);
