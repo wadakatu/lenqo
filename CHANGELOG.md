@@ -2,6 +2,13 @@
 
 All notable changes to Lenqo are documented here.
 
+## 0.1.1 — 2026-09-07
+
+- Isolated GitHub Actions release verification and stage-only npm Trusted Publishing.
+- Exact-tarball installation tests, checksum verification, and maintainer approval before publication.
+- Pinned Actions, dependency update automation, and documented release security boundaries.
+- Fixed first-install CI verification on machines without cached registry metadata.
+
 ## 0.1.0 — 2026-09-07
 
 - Initial local-first visual review workspace.
