@@ -16,7 +16,7 @@
 
 <p align="center">
   <a href="#first-review">Quick start</a> ·
-  <a href="docs/agents.md">Agent guide</a> ·
+  <a href="https://github.com/wadakatu/lenqo/blob/main/docs/agents.md">Agent guide</a> ·
   <a href="#configure-and-extend">Configuration</a> ·
   <a href="#commands">Commands</a>
 </p>
@@ -52,7 +52,7 @@ Paste this into your coding agent:
 
 > Set up Lenqo in this application using https://github.com/wadakatu/lenqo/blob/main/docs/agents.md. Use the existing package manager and app server. Create desktop and mobile captures, preserve existing tests and review comments, and give me the running catalog URL so I can review the design myself.
 
-The [agent guide](docs/agents.md) includes the complete installation, diagnostics, feedback workflow, and a short pointer for your project's agent instructions. After installation, `npx lenqo guide` prints the same guide offline.
+The [agent guide](https://github.com/wadakatu/lenqo/blob/main/docs/agents.md) includes the complete installation, diagnostics, feedback workflow, and a short pointer for your project's agent instructions. After installation, `npx lenqo guide` prints the same guide offline.
 
 ## First review
 
@@ -177,7 +177,7 @@ lenqo stop [--config <file>] [--root <directory>]
 
 `build` writes the catalog HTML file, while `serve` also maps capture assets, enables the live proxy, and persists comments. Use the served workspace for review. Commit the review JSON only when feedback belongs in source control; otherwise ignore the configured review path in the consuming project.
 
-`init`, `doctor`, `build`, and `status` support `--json` for agents and automation. `init` also accepts `--root` and `--config`. `doctor` checks local dependencies, launches Chromium, validates the config, and probes the app origin; failed checks include a suggested action and exit nonzero. It does not install anything. After UI changes, recapture and run `lenqo build`; reload the catalog for the latest images. See [the agent guide](docs/agents.md) for existing-suite integration, feedback handling, and the JSON contract.
+`init`, `doctor`, `build`, and `status` support `--json` for agents and automation. `init` also accepts `--root` and `--config`. `doctor` checks local dependencies, launches Chromium, validates the config, and probes the app origin; failed checks include a suggested action and exit nonzero. It does not install anything. After UI changes, recapture and run `lenqo build`; reload the catalog for the latest images. See [the agent guide](https://github.com/wadakatu/lenqo/blob/main/docs/agents.md) for existing-suite integration, feedback handling, and the JSON contract.
 
 ## Troubleshooting
 
@@ -205,7 +205,7 @@ npm test
 npm run test:install
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the fixture and release workflow.
+See [CONTRIBUTING.md](https://github.com/wadakatu/lenqo/blob/main/CONTRIBUTING.md) for the fixture and release workflow.
 
 ## License
 

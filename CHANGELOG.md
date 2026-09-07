@@ -2,6 +2,12 @@
 
 All notable changes to Lenqo are documented here.
 
+## 0.1.2 — 2026-09-08
+
+- Refreshed the npm README with the Lenqo logo, real catalog and live-preview screenshots, and clearer onboarding links.
+- Kept documentation images outside the npm package to avoid increasing installation size.
+- No runtime or API changes.
+
 ## 0.1.1 — 2026-09-07
 
 - Isolated GitHub Actions release verification and stage-only npm Trusted Publishing.

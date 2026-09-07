@@ -1,6 +1,6 @@
 {
 	"name": "lenqo",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Local-first visual review for Playwright captures and live previews.",
 	"repository": { "type": "git", "url": "git+https://github.com/wadakatu/lenqo.git" },
 	"homepage": "https://github.com/wadakatu/lenqo#readme",
