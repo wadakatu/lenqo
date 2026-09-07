@@ -1,19 +1,45 @@
-# Lenqo
+<p align="center">
+  <img src="https://raw.githubusercontent.com/wadakatu/lenqo/main/media/lenqo-logo.png" alt="Lenqo — screen-frame logo with a blue review pin" width="640">
+</p>
 
-Lenqo turns Playwright screenshots and a running local site into one focused visual-review workspace. Browse captures by product area, page, and state; compare desktop and mobile; open a full capture; then pin review comments directly on the image or live preview.
+<h1 align="center">Visual review. On your machine.</h1>
 
-It is local-first: no account, hosted dashboard, database, or browser extension is required.
+<p align="center">
+  Playwright captures, live previews, and pinned feedback.<br>
+  One local workspace for you and your coding agent.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/lenqo"><img src="https://img.shields.io/npm/v/lenqo?color=315cff" alt="npm version"></a>
+  <a href="https://github.com/wadakatu/lenqo/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-17201e" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <a href="#first-review">Quick start</a> ·
+  <a href="docs/agents.md">Agent guide</a> ·
+  <a href="#configure-and-extend">Configuration</a> ·
+  <a href="#commands">Commands</a>
+</p>
+
+![Lenqo Review: a screen index and desktop and mobile captures displayed side by side](https://raw.githubusercontent.com/wadakatu/lenqo/main/media/review-catalog.png)
+
+**See what your agent built, then show it what to change.** Browse screenshots by product area, page, and state. Compare desktop and mobile, try the running app, and leave feedback exactly where it belongs.
+
+No account. No hosted dashboard. No database or browser extension.
 
 ## What it does
 
-- Builds a responsive catalog from deterministic Playwright screenshots.
-- Organizes larger products as `groups → pages → states`.
-- Switches between static Review and interactive Preview without losing the current page.
-- Filters desktop, mobile, or both capture sets.
-- Fits full-page captures inside a desktop or phone-shaped review surface.
-- Stores pinned feedback in a readable JSON file with optimistic concurrency protection.
-- Proxies the local site so in-frame navigation, forms, HMR, and same-origin review pins work together.
-- Ships English and Japanese interface copy.
+| Compare | Interact | Give feedback |
+| --- | --- | --- |
+| Desktop, mobile, or both. Organize captures as `groups → pages → states` and inspect full-page screenshots. | Switch to the same page in Live Preview. Follow links, submit forms, and check menus. | Pin comments to a capture or live page. Feedback stays in readable local JSON, with protection against conflicting saves. |
+
+English and Japanese interfaces included. Playwright handles capture; Lenqo handles the review.
+
+### Try the page. Leave a note.
+
+![Lenqo Live Preview with a numbered review pin and a saved comment beside the running fixture site](https://raw.githubusercontent.com/wadakatu/lenqo/main/media/live-preview.png)
+
+These are real Lenqo screens using the repository's test fixture and example feedback, not product mockups. Your own application appears inside the review workspace.
 
 ## Requirements
 
