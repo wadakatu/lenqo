@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact package.json version to verify
+        required: true
+        type: string
+      stage:
+        description: Upload a candidate to npm for maintainer approval (never publishes directly)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.repository == 'wadakatu/lenqo' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      sha256: ${{ steps.pack.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Validate release identity
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import { readFileSync } from "node:fs";
+            const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+            assert.equal(pkg.name, "lenqo");
+            assert.equal(pkg.version, process.env.EXPECTED_VERSION);
+            assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
+            assert.equal(pkg.repository.url, "git+https://github.com/wadakatu/lenqo.git");
+          '
+      - run: npm ci --ignore-scripts
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: npm run check
+      - run: npm test
+      - name: Pack once and record checksum
+        id: pack
+        run: |
+          mkdir release
+          npm pack --ignore-scripts --json --pack-destination release > release/manifest.json
+          node --input-type=module -e '
+            import { readFileSync, renameSync, appendFileSync } from "node:fs";
+            import { createHash } from "node:crypto";
+            const [pkg] = JSON.parse(readFileSync("release/manifest.json", "utf8"));
+            renameSync("release/" + pkg.filename, "release/lenqo.tgz");
+            const hash = createHash("sha256").update(readFileSync("release/lenqo.tgz")).digest("hex");
+            appendFileSync(process.env.GITHUB_OUTPUT, "sha256=" + hash + "\n");
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, "Candidate: " + pkg.id + "\n\nCommit: " + process.env.GITHUB_SHA + "\n\nSHA-256: " + hash + "\n");
+          '
+      - name: Test the exact release tarball in a fresh consumer
+        run: npm run test:install -- --tarball release/lenqo.tgz
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: lenqo-candidate
+          path: release/
+          if-no-files-found: error
+          retention-days: 7
+
+  stage:
+    if: inputs.stage && github.repository == 'wadakatu/lenqo' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # No source checkout, npm ci, dependency scripts, or shared cache in this job.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: lenqo-candidate
+          path: release
+      - name: Verify the tested artifact
+        env:
+          EXPECTED_SHA256: ${{ needs.verify.outputs.sha256 }}
+        run: |
+          node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import { readFileSync } from "node:fs";
+            import { createHash } from "node:crypto";
+            const hash = createHash("sha256").update(readFileSync("release/lenqo.tgz")).digest("hex");
+            assert.equal(hash, process.env.EXPECTED_SHA256);
+          '
+      - name: Stage with OIDC and provenance (requires later npm approval)
+        run: npm stage publish ./release/lenqo.tgz --access public --ignore-scripts --provenance --registry=https://registry.npmjs.org/

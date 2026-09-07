@@ -6,7 +6,11 @@ Security fixes are applied to the latest released version.
 
 ## Reporting a vulnerability
 
-Please report vulnerabilities privately through the security advisory feature of the eventual GitHub repository. Do not open a public issue containing exploit details.
+Please report vulnerabilities privately through [GitHub private vulnerability reporting](https://github.com/wadakatu/lenqo/security/advisories/new). Do not open a public issue containing exploit details.
+
+## Package releases
+
+See [the release workflow](docs/releases.md) for the OIDC stage-only publisher, isolated verification and staging jobs, and npm maintainer approval. No long-lived npm write token is stored in GitHub Actions. Provenance identifies the source/build of future CI releases, not the absence of vulnerabilities; the initial local `0.1.0` release does not have CI provenance.
 
 ## Local-server boundary
 
