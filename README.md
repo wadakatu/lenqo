@@ -15,13 +15,20 @@
 </p>
 
 <p align="center">
+  <a href="#see-lenqo-in-action">Watch the demo</a> ·
   <a href="#first-review">Quick start</a> ·
   <a href="https://github.com/wadakatu/lenqo/blob/main/docs/agents.md">Agent guide</a> ·
   <a href="#configure-and-extend">Configuration</a> ·
   <a href="#commands">Commands</a>
 </p>
 
-![Lenqo Review: a screen index and desktop and mobile captures displayed side by side](https://raw.githubusercontent.com/wadakatu/lenqo/main/media/review-catalog.png)
+## See Lenqo in action
+
+[![Watch Lenqo in action: desktop and mobile captures in a single review workspace](https://raw.githubusercontent.com/wadakatu/lenqo/main/media/demo-poster.png)](https://github.com/wadakatu/lenqo/blob/main/media/lenqo-walkthrough-en.mp4)
+
+**[Watch the demo · 32 seconds · English captions](https://github.com/wadakatu/lenqo/blob/main/media/lenqo-walkthrough-en.mp4)** · [日本語の15秒版](https://github.com/wadakatu/lenqo/blob/main/media/lenqo-social-ja.mp4) · [Quick start](#first-review)
+
+No sound required. Compare captures, try real navigation, and save a pinned comment. [Read the video transcripts](https://github.com/wadakatu/lenqo/blob/main/media/demos.md).
 
 **See what your agent built, then show it what to change.** Browse screenshots by product area, page, and state. Compare desktop and mobile, try the running app, and leave feedback exactly where it belongs.
 

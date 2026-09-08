@@ -5,6 +5,7 @@ These files are documentation assets, not consumer captures or private review da
 - `lenqo-logo.png`: original Lenqo brand lockup, generated with the built-in image generation tool. A screen-frame L and a blue review pin connect the identity to the product. The opaque light background keeps the dark wordmark legible in light and dark README themes.
 - `review-catalog.png`: actual Lenqo catalog with the repository's deterministic fixture captures.
 - `live-preview.png`: actual local preview with a demonstration comment stored only in ignored fixture data.
+- `demo-poster.png`, `lenqo-walkthrough-en.mp4`, and `lenqo-social-ja.mp4`: human-reviewed demonstration videos and the README thumbnail. See [the demos and transcripts](demos.md).
 
 ## Recreate the screenshots
 
