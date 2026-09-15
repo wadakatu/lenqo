@@ -2,7 +2,27 @@
 
 These recordings show the actual Lenqo interface with Margin, a fictional notebook website. Captions, click cues, camera zoom, and the end card are editorial additions, not Lenqo features. No customer data is shown. Mobile viewports are browser emulations, not physical-device tests.
 
-## English walkthrough · 32 seconds
+## Latest demo · 64 seconds · 日本語字幕
+
+[![Lenqo — visual review for you and your AI](lenqo-demo-poster.png)](https://github.com/wadakatu/lenqo/raw/refs/heads/main/media/lenqo-demo-ja.mp4)
+
+[Full MP4 / ダウンロード](https://github.com/wadakatu/lenqo/raw/refs/heads/main/media/lenqo-demo-ja.mp4)
+
+### Transcript / 動画の内容
+
+- 0:00 — Lenqo: AIが作った画面を、自分の目で確かめる。
+- 0:04 — AIは確認した。自分は、まだ見ていない。
+- 0:07 — PCとモバイルを、見比べる。The viewport controls are highlighted and enlarged before switching Mobile and All.
+- 0:20 — 眺めるだけでなく、その場で動かす。Live Preview opens; a real link navigates from Overview to Field notes.
+- 0:34 — 気になる場所を、そのまま指摘。A pin is placed on the heading; “見出しの余白をもう少し広く。” is typed and saved. The saved note is shown close up.
+- 0:57 — 見て、触って、伝える。あなたとAIのための、画面レビュー。
+- 0:59 — Lenqo / github.com/wadakatu/lenqo.
+
+Chapter times are rounded down. The README's looping GIF is only the continuous
+0:07.5–0:18.5 excerpt. This still image and transcript are alternatives to the
+animation. The full video keeps the reviewed pace and runs 64.27 seconds.
+
+## Earlier English walkthrough · 32 seconds
 
 [![Watch the Lenqo walkthrough](demo-poster.png)](lenqo-walkthrough-en.mp4)
 
@@ -30,6 +50,6 @@ These recordings show the actual Lenqo interface with Margin, a fictional notebo
 
 ## Files and playback
 
-Both videos are silent H.264 MP4 files with 30 fps and progressive playback metadata. The English version is 1440 × 1080; the Japanese version is 1080 × 1350. Use the player controls to pause, seek, or enter full screen. If your browser cannot play a video on GitHub, use the download link and a local video player.
+The documentation videos are silent H.264 MP4 files with 30 fps and progressive playback metadata. The English version is 1440 × 1080; the Japanese versions are 1080 × 1350. MP4 links may download instead of opening a player, depending on the browser. Download the file and use a local video player to pause, seek, or enter full screen.
 
 These media files are documentation assets and are excluded from the npm package's `files` allowlist. Recording scripts and raw captures are not part of this publication.

@@ -6,6 +6,14 @@ These files are documentation assets, not consumer captures or private review da
 - `review-catalog.png`: actual Lenqo catalog with the repository's deterministic fixture captures.
 - `live-preview.png`: actual local preview with a demonstration comment stored only in ignored fixture data.
 - `demo-poster.png`, `lenqo-walkthrough-en.mp4`, and `lenqo-social-ja.mp4`: human-reviewed demonstration videos and the README thumbnail. See [the demos and transcripts](demos.md).
+- `lenqo-demo-ja.mp4`: approved 64-second Japanese demo with operation zooms and the corrected ending.
+- `lenqo-demo-preview.gif`: an 11-second continuous excerpt at 540 × 675, 10 fps for the README; not the full video.
+- `lenqo-demo-poster.png`: still preview of the approved video's opening title.
+
+The README embeds a lightweight GIF excerpt and links to the full MP4 file.
+The full MP4 link is a direct file link, not an inline README video player;
+some browsers download it instead of opening it. The still poster and transcript
+provide alternatives to the looping animation.
 
 ## Recreate the screenshots
 
