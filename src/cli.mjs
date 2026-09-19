@@ -3,6 +3,7 @@
 import { closeSync, createReadStream, existsSync, openSync } from "node:fs";
 import {
 	mkdir,
+	realpath,
 	readdir,
 	readFile,
 	rename,
@@ -15,9 +16,11 @@ import http from "node:http";
 import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { initializeProject, diagnose } from "./onboarding.mjs";
+import { normalizeAllowedHost, requestAllowed } from "./server-security.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const packageRoot = path.resolve(path.dirname(scriptPath), "..");
@@ -182,6 +185,8 @@ function normalizeConfig(input) {
 		throw new Error("Refusing a non-loopback server host. Set server.allowRemote to true if this is intentional.");
 	}
 	const serverPort = Number(input.server?.port ?? 4400);
+	if (input.server?.allowedHosts !== undefined && !Array.isArray(input.server.allowedHosts)) throw new Error("server.allowedHosts must be an array.");
+	const allowedHosts = (input.server?.allowedHosts ?? []).map(normalizeAllowedHost);
 	if (!Number.isInteger(serverPort) || serverPort < 1 || serverPort > 65535) {
 		throw new Error("server.port must be an integer between 1 and 65535.");
 	}
@@ -193,6 +198,7 @@ function normalizeConfig(input) {
 			host: serverHost,
 			port: serverPort,
 			allowRemote,
+			allowedHosts,
 		},
 		paths: input.paths ?? {},
 		groups: normalizedGroups,
@@ -214,6 +220,8 @@ const port = config.server?.port ?? 4400;
 const urlHost = host === "::1" ? "[::1]" : host;
 const catalogURL = `http://${urlHost}:${port}/catalog/`;
 const healthURL = `http://${urlHost}:${port}/__lenqo/health`;
+const statePath = path.join(runtimeRoot, "server.json");
+const projectId = createHash("sha256").update(JSON.stringify([await realpath(projectRoot), await realpath(configPath)])).digest("hex");
 
 const mimeTypes = new Map([
 	[".html", "text/html; charset=utf-8"],
@@ -504,6 +512,10 @@ async function serveFile(response, root, relativePath) {
 		response.writeHead(404).end("Not found");
 		return;
 	}
+	if (!isPathInside(await realpath(candidate), await realpath(root))) {
+		response.writeHead(404).end("Not found");
+		return;
+	}
 	const info = await stat(candidate);
 	if (!info.isFile()) {
 		response.writeHead(404).end("Not found");
@@ -514,7 +526,10 @@ async function serveFile(response, root, relativePath) {
 		"content-length": info.size,
 		"cache-control": "no-store",
 	});
-	createReadStream(candidate).pipe(response);
+	const stream = createReadStream(candidate);
+	stream.on("error", () => response.destroy());
+	response.on("close", () => stream.destroy());
+	stream.pipe(response);
 }
 
 function proxyRequest(request, response) {
@@ -538,6 +553,7 @@ function proxyRequest(request, response) {
 		},
 	);
 	proxy.on("error", () => {
+		if (response.headersSent || response.destroyed) { response.destroy(); return; }
 		response.writeHead(502, { "content-type": "text/plain; charset=utf-8" });
 		response.end(
 			`Preview is unavailable. Start the site with: npm run dev:background\nTarget: ${config.previewOrigin}`,
@@ -653,11 +669,6 @@ let reviewWriteQueue = Promise.resolve();
 
 async function handleReviewAPI(request, response) {
 	try {
-		const origin = request.headers.origin;
-		if (origin && origin !== new URL(catalogURL).origin) {
-			sendJSON(response, 403, { error: "Review writes are limited to this Lenqo origin." });
-			return;
-		}
 		if (request.method === "GET") {
 			sendJSON(response, 200, await readReviewDocument());
 			return;
@@ -697,6 +708,10 @@ async function handleReviewAPI(request, response) {
 }
 
 function proxyUpgrade(request, socket, head) {
+	if (!requestAllowed(request, config.server)) {
+		socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+		return;
+	}
 	const upstream = new URL(config.previewOrigin);
 	const upstreamSocket = net.connect(Number(upstream.port || 80), upstream.hostname, () => {
 		const headers = Object.entries({ ...request.headers, host: upstream.host })
@@ -713,15 +728,39 @@ function proxyUpgrade(request, socket, head) {
 }
 
 async function serveForeground() {
+	if (await waitForServer(150)) throw new Error(`Lenqo is already running at ${catalogURL}.`);
 	await buildCatalog();
 	await mkdir(catalogRoot, { recursive: true });
 	await mkdir(runtimeRoot, { recursive: true });
 
-	const server = http.createServer(async (request, response) => {
+	const instanceId = randomUUID();
+	const stopToken = randomUUID();
+	let ready = false;
+	const server = http.createServer((request, response) => {
+		void handleRequest(request, response).catch((error) => {
+			if (response.headersSent || response.destroyed) { response.destroy(); return; }
+			const status = error instanceof URIError || error.code === "ERR_INVALID_URL" ? 400
+				: ["ENOENT", "ENOTDIR", "EACCES"].includes(error.code) ? 404 : 500;
+			response.writeHead(status, { "content-type": "text/plain; charset=utf-8" }).end(status === 400 ? "Invalid URL" : status === 404 ? "Not found" : "Request failed");
+		});
+	});
+	async function handleRequest(request, response) {
+		if (!requestAllowed(request, config.server)) {
+			sendJSON(response, 403, { error: "Host or Origin is not allowed." });
+			return;
+		}
+		if (!request.url?.startsWith("/") || request.url.startsWith("//")) throw new URIError("Invalid request target");
 		const requestURL = new URL(request.url ?? "/", catalogURL);
+		if (decodeURIComponent(requestURL.pathname).includes("\0")) throw new URIError("Invalid path");
 		if (requestURL.pathname === "/__lenqo/health") {
-			response.writeHead(200, { "content-type": "application/json" });
-			response.end(JSON.stringify({ ok: true, pid: process.pid }));
+			sendJSON(response, ready ? 200 : 503, { ok: ready, service: "lenqo", projectId, instanceId, pid: process.pid });
+			return;
+		}
+		if (requestURL.pathname === "/__lenqo/stop") {
+			if (request.method !== "POST") { response.writeHead(405, { allow: "POST" }).end(); return; }
+			if (request.headers["x-lenqo-stop-token"] !== stopToken) { sendJSON(response, 403, { error: "Invalid stop token." }); return; }
+			sendJSON(response, 200, { ok: true });
+			setImmediate(() => void shutdown());
 			return;
 		}
 		if (requestURL.pathname === "/__lenqo/api/comments") {
@@ -741,7 +780,7 @@ async function serveForeground() {
 			return;
 		}
 		proxyRequest(request, response);
-	});
+	}
 	const sockets = new Set();
 	server.on("connection", (socket) => {
 		sockets.add(socket);
@@ -751,50 +790,58 @@ async function serveForeground() {
 	server.on("clientError", (_error, socket) => {
 		if (!socket.destroyed) socket.destroy();
 	});
-	server.on("error", async (error) => {
-		try {
-			await unlink(pidPath);
-		} catch {}
+	server.on("error", (error) => {
 		console.error(`Lenqo could not listen on ${host}:${port}: ${error.message}`);
 		process.exitCode = 1;
 	});
 	server.on("upgrade", proxyUpgrade);
 
+	let stopping = false;
 	const shutdown = async () => {
+		if (stopping) return;
+		stopping = true;
+		await reviewWriteQueue;
+		try {
+			const stored = JSON.parse(await readFile(statePath, "utf8"));
+			if (stored.instanceId === instanceId) {
+				await unlink(statePath);
+				await unlink(pidPath).catch(() => {});
+			}
+		} catch {}
 		for (const socket of sockets) socket.destroy();
 		server.close(() => process.exit());
-		try {
-			await unlink(pidPath);
-		} catch {}
 	};
 	process.on("SIGTERM", shutdown);
 	process.on("SIGINT", shutdown);
 
 	server.listen(port, host, async () => {
-		await writeFile(pidPath, String(process.pid));
-		console.log(`Lenqo → ${catalogURL}`);
+		try {
+			const temporaryState = `${statePath}.${instanceId}.tmp`;
+			await writeFile(temporaryState, JSON.stringify({ projectId, instanceId, stopToken, pid: process.pid }), { mode: 0o600, flag: "wx" });
+			await rename(temporaryState, statePath);
+			await writeFile(pidPath, String(process.pid));
+			ready = true;
+			console.log(`Lenqo → ${catalogURL}`);
+		} catch (error) {
+			console.error(`Lenqo could not save runtime state: ${error.message}`);
+			process.exitCode = 1;
+			await shutdown();
+		}
 	});
-}
-
-async function readRunningPid() {
-	if (!existsSync(pidPath)) return null;
-	const pid = Number((await readFile(pidPath, "utf8")).trim());
-	if (!Number.isInteger(pid)) return null;
-	try {
-		process.kill(pid, 0);
-		return pid;
-	} catch {
-		return null;
-	}
 }
 
 async function waitForServer(timeoutMs = 5000) {
 	const startedAt = Date.now();
 	while (Date.now() - startedAt < timeoutMs) {
-		try {
-			const response = await fetch(healthURL, { signal: AbortSignal.timeout(Math.max(1, timeoutMs - (Date.now() - startedAt))) });
-			if (response.ok) return await response.json();
-		} catch {}
+		let response;
+		try { response = await fetch(healthURL, { redirect: "error", signal: AbortSignal.timeout(Math.max(1, timeoutMs - (Date.now() - startedAt))) }); } catch {}
+		if (response) {
+			const health = await response.json().catch(() => null);
+			if (health?.service !== "lenqo" || health.projectId !== projectId || !Number.isInteger(health.pid) || typeof health.instanceId !== "string") {
+				throw new Error(`Port ${port} belongs to another project or an unverified server. Choose another server.port; do not stop that process.`);
+			}
+			if (response.ok && health.ok) return health;
+		}
 		await new Promise((resolve) => setTimeout(resolve, 100));
 	}
 	return null;
@@ -833,25 +880,25 @@ async function serveBackground() {
 
 async function stopServer() {
 	const runningServer = await waitForServer(300);
-	const pid = runningServer?.pid ?? (await readRunningPid());
-	if (!pid) {
-		console.log("Lenqo is not running.");
-		try {
-			await unlink(pidPath);
-		} catch {}
+	if (!runningServer) {
+		console.log("No verified Lenqo server is reachable. No process was stopped.");
 		return;
 	}
-	process.kill(pid, "SIGTERM");
+	const stored = await readFile(statePath, "utf8").then(JSON.parse).catch(() => null);
+	if (stored?.projectId !== projectId || stored.instanceId !== runningServer.instanceId || stored.pid !== runningServer.pid || !stored.stopToken) {
+		throw new Error("Cannot verify this server's runtime state. No process was stopped. Restart older Lenqo servers from their original terminal.");
+	}
+	const response = await fetch(new URL("/__lenqo/stop", healthURL), { method: "POST", headers: { "x-lenqo-stop-token": stored.stopToken }, signal: AbortSignal.timeout(3000) });
+	if (!response.ok) throw new Error("The server rejected the stop request. No PID signal was sent.");
 	for (let attempt = 0; attempt < 30; attempt += 1) {
 		await new Promise((resolve) => setTimeout(resolve, 100));
-		try {
-			process.kill(pid, 0);
-		} catch {
-			console.log(`Lenqo stopped (PID ${pid}).`);
+		const current = await waitForServer(100);
+		if (!current || current.instanceId !== runningServer.instanceId) {
+			console.log(`Lenqo stopped (PID ${runningServer.pid}).`);
 			return;
 		}
 	}
-	throw new Error(`Lenqo process ${pid} did not stop.`);
+	throw new Error(`Lenqo process ${runningServer.pid} did not stop.`);
 }
 
 async function showStatus() {

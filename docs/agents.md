@@ -66,6 +66,12 @@ When overriding `paths.captures`, pass the same directory as `captureVisual({ ou
 
 ## Machine-readable contract
 
+Server lifecycle commands verify the canonical project root and config path. A port occupied by another project or an unverifiable server is an error, not an existing usable session. Choose another `server.port`; never kill that process to unblock setup. `stop` additionally checks the current instance against the private `server.json` in the configured runtime directory and sends a token-authenticated shutdown request. It never signals a PID from a stale file. Keep runtime files ignored and private, and use separate runtime directories for separate server configurations. Older-version servers must be stopped from their original terminal before restarting.
+
+Keep the listener on loopback. HTTP and WebSocket requests validate Host, Origin when present, and cross-site Fetch Metadata before routing. If a deliberate custom hostname is needed, configure an exact `server.allowedHosts` entry (no scheme, port, or wildcard). `allowRemote` does not disable these checks or add authentication; do not expose Lenqo to untrusted networks.
+
+Preview preserves the selected logical CSS viewport and scales its presentation to fit the available space. Review coordinates and `viewportWidth` refer to that logical viewport, not the on-screen scaled size.
+
 `init`, `doctor`, `build`, and `status` support `--json`. With the bundled configuration, stdout is one JSON object containing `schemaVersion: 1`, `command`, and `ok`. Keep custom config modules silent if using machine output. Failures return a nonzero exit code; caught CLI errors contain `error.message`. `doctor` failures instead contain a `checks` array with stable `id`, `status`, `message`, and optional `action` fields. `status` exits 1 if the server is stopped or unreachable. `build` returns `captureCount`, `catalogPath`, and `catalogURL` but does not start a server. `serve --background` returns after startup with a human-readable URL; follow it with `status --json` for structured output. Unsupported flags fail rather than being silently ignored.
 
 ## Make this discoverable in the consuming application

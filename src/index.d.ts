@@ -24,6 +24,8 @@ export interface LenqoServerOptions {
 	host?: string;
 	port?: number;
 	allowRemote?: boolean;
+	/** Additional exact trusted hostnames/IPs; no schemes, ports, or wildcards. */
+	allowedHosts?: string[];
 }
 
 export interface LenqoConfig {

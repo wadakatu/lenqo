@@ -83,6 +83,8 @@ npx lenqo serve --background
 
 Open **[http://127.0.0.1:4400/catalog/](http://127.0.0.1:4400/catalog/)**. Review compares screenshots; Preview lets you navigate your running app. Both support pinned feedback. Keep the app server and Lenqo running while reviewing; `npx lenqo stop` stops Lenqo only.
 
+Preview uses the selected viewport's actual CSS width (1440, 768, or 390 px), scaling the presentation down to fit your window. Pinned feedback records that viewport, not the scaled display size.
+
 For repeatable installs, commit your lockfile. The starter requires only Chromium. Mobile is an emulation, not a physical-device or Safari test.
 
 ## Configure and extend
@@ -131,6 +133,10 @@ paths: {
 ```
 
 Keep the server on a loopback host. Binding to another interface requires the explicit `server.allowRemote: true` escape hatch; Lenqo is a development tool, not an authenticated production service.
+
+HTTP and WebSocket requests require a trusted Host and, when present, a matching Origin. Loopback names and the configured server host are trusted. For an intentional custom hostname, add an exact name in `server.allowedHosts` (for example, `["review.test"]`); schemes, ports and wildcards are not accepted. This is not authentication: do not expose Lenqo, its captures, or your app to an untrusted network.
+
+`serve`, `status`, and `stop` verify the project/config identity. If another project uses the same port, choose a different `server.port`. Stopping also requires the current instance's private runtime state; stale PID files are never used to kill processes. Servers started with older Lenqo versions must be stopped from their original terminal before restarting with this version.
 
 ## Capture with Playwright
 

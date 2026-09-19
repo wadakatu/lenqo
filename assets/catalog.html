@@ -121,7 +121,8 @@
 			.preview-review-toggle[disabled] { border-color: var(--rule); background: #cbd4d2; color: #687572; cursor: not-allowed; }
 			.preview-review-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding-inline: 5px; border-radius: 999px; background: white; color: var(--signal-dark); font: 800 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
 			.preview-canvas { display: grid; place-items: start center; min-height: 780px; padding: 28px; overflow: auto; background-color: #c5d0cd; background-image: linear-gradient(rgb(24 34 37 / 0.06) 1px, transparent 1px), linear-gradient(90deg, rgb(24 34 37 / 0.06) 1px, transparent 1px); background-size: 24px 24px; }
-			.browser-frame { width: min(100%, 1440px); min-width: 320px; border: 1px solid #6f7c79; background: white; box-shadow: 0 30px 70px rgb(24 34 37 / 0.22); transition: width 240ms ease; }
+			.browser-stage { position: relative; width: 100%; min-width: 0; }
+			.browser-frame { position: absolute; top: 0; left: 0; width: 1442px; transform-origin: top left; border: 1px solid #6f7c79; background: white; box-shadow: 0 30px 70px rgb(24 34 37 / 0.22); }
 			.browser-chrome { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; height: 42px; padding: 0 13px; border-bottom: 1px solid #c8d0ce; background: #e7eceb; }
 			.traffic-lights { display: flex; gap: 6px; }
 			.traffic-lights span { width: 8px; height: 8px; border: 1px solid #8c9996; border-radius: 50%; background: #f8faf9; }
@@ -282,6 +283,7 @@
 						<a id="open-preview" class="open-button" href="/" target="_blank" rel="noreferrer">Open in new tab ↗</a>
 					</div>
 					<div class="preview-canvas">
+						<div class="browser-stage">
 						<div id="browser-frame" class="browser-frame">
 							<div class="browser-chrome" aria-hidden="true">
 								<div class="traffic-lights"><span></span><span></span><span></span></div>
@@ -295,6 +297,7 @@
 								</div>
 								<aside id="preview-review-drawer" class="review-drawer preview-review-drawer" aria-label="Live Previewのレビューコメント" hidden></aside>
 							</div>
+						</div>
 						</div>
 					</div>
 				</section>
@@ -330,6 +333,8 @@
 			const routeSelect = document.querySelector("#route-select");
 			const frame = document.querySelector("#preview-frame");
 			const browserFrame = document.querySelector("#browser-frame");
+			const browserStage = document.querySelector(".browser-stage");
+			const previewCanvas = document.querySelector(".preview-canvas");
 			const previewPath = document.querySelector("#preview-path");
 			const previewSize = document.querySelector("#preview-size");
 			const openPreview = document.querySelector("#open-preview");
@@ -410,8 +415,8 @@
 					);
 					return {
 						route: `${location.pathname}${location.search}`,
-						viewportWidth: currentPreviewWidth,
-						device: currentPreviewWidth < 600 ? "mobile" : "desktop",
+						viewportWidth: previewWindow.innerWidth,
+						device: previewWindow.innerWidth < 600 ? "mobile" : "desktop",
 						scrollY: previewWindow.scrollY,
 						pageHeight,
 						viewportHeight: previewWindow.innerHeight,
@@ -586,16 +591,9 @@
 				renderDialogReview();
 			}
 
-			function renderPreviewReview() {
+			function renderPreviewPins() {
 				const context = getPreviewContext();
 				const comments = commentsForPreview(context);
-				const openCount = comments.filter((comment) => comment.status === "open").length;
-				previewReviewToggle.disabled = !context;
-				previewReviewToggle.setAttribute("aria-expanded", String(previewDrawerOpen));
-				previewReviewToggle.innerHTML = previewPicking
-					? escapeHTML(t.selecting)
-					: `${escapeHTML(t.review)}${openCount > 0 ? `<span class="preview-review-count">${openCount}</span>` : ""}`;
-				previewReviewDrawer.hidden = !previewDrawerOpen;
 				previewReviewLayer.classList.toggle("is-picking", previewPicking);
 
 				const visiblePins = context ? comments.map((comment, index) => ({
@@ -615,6 +613,19 @@
 						? `<span class="preview-review-pin preview-review-pin--draft" style="left:${previewPendingPin.x * 100}%;top:${draftTop}px" aria-hidden="true">＋</span>`
 						: ""}
 				`;
+			}
+
+			function renderPreviewReview() {
+				const context = getPreviewContext();
+				const comments = commentsForPreview(context);
+				const openCount = comments.filter((comment) => comment.status === "open").length;
+				previewReviewToggle.disabled = !context;
+				previewReviewToggle.setAttribute("aria-expanded", String(previewDrawerOpen));
+				previewReviewToggle.innerHTML = previewPicking
+					? escapeHTML(t.selecting)
+					: `${escapeHTML(t.review)}${openCount > 0 ? `<span class="preview-review-count">${openCount}</span>` : ""}`;
+				previewReviewDrawer.hidden = !previewDrawerOpen;
+				renderPreviewPins();
 
 				if (!context) {
 					previewReviewDrawer.innerHTML = `
@@ -742,6 +753,7 @@
 				if (isReview) {
 					renderReview();
 				} else {
+					fitPreview();
 					const selectedPage = data.pages.find((page) => page.id === selectedPageId);
 					if (selectedPage) {
 						routeSelect.value = selectedPage.route;
@@ -767,6 +779,7 @@
 			}
 
 			function syncPreviewLocation() {
+				const previousRoute = lastPreviewRoute;
 				try {
 					const location = frame.contentWindow.location;
 					const route = `${location.pathname}${location.search}`;
@@ -791,8 +804,22 @@
 					previewPendingPin = null;
 					previewPicking = false;
 				}
-				renderPreviewReview();
+				if (previousRoute !== lastPreviewRoute) renderPreviewReview();
+				else renderPreviewPins();
 			}
+
+			function fitPreview() {
+				if (previewView.hidden) return;
+				const styles = getComputedStyle(previewCanvas);
+				const available = previewCanvas.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
+				const width = currentPreviewWidth + 2; // Preserve the iframe's exact viewport inside the border.
+				const scale = Math.min(1, Math.max(1, available) / width);
+				browserFrame.style.width = `${width}px`;
+				browserFrame.style.transform = `scale(${scale})`;
+				browserStage.style.width = `${width * scale}px`;
+				browserStage.style.height = `${browserFrame.offsetHeight * scale}px`;
+			}
+			new ResizeObserver(fitPreview).observe(previewCanvas);
 
 			const routePlaceholder = new Option(t.selectPagePlaceholder, "", true, true);
 			routePlaceholder.disabled = true;
@@ -816,10 +843,12 @@
 			document.querySelector("#preview-reload").addEventListener("click", () => frame.contentWindow.location.reload());
 			frame.addEventListener("load", () => {
 				syncPreviewLocation();
+				fitPreview();
+				renderPreviewReview();
 				try {
 					frame.contentWindow.addEventListener("hashchange", syncPreviewLocation);
 					frame.contentWindow.addEventListener("popstate", syncPreviewLocation);
-					frame.contentWindow.addEventListener("scroll", renderPreviewReview, { passive: true });
+					frame.contentWindow.addEventListener("scroll", renderPreviewPins, { passive: true });
 					frame.contentDocument.addEventListener("click", () => setTimeout(syncPreviewLocation));
 				} catch {}
 			});
@@ -829,7 +858,7 @@
 				previewPendingPin = null;
 				previewPicking = false;
 				previewReviewErrorMessage = "";
-				browserFrame.style.width = `min(100%, ${width}px)`;
+				fitPreview();
 				previewSize.textContent = `${width}px`;
 				document.querySelectorAll(".viewport-button").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
 				renderPreviewReview();
@@ -860,7 +889,7 @@
 					?? data.pages[0];
 				previewPendingPin = {
 					x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
-					y: Math.max(0, Math.min(1, (context.scrollY + event.clientY - bounds.top) / context.pageHeight)),
+					y: Math.max(0, Math.min(1, (context.scrollY + (event.clientY - bounds.top) * context.viewportHeight / bounds.height) / context.pageHeight)),
 					message: "",
 					route: context.route,
 					viewportWidth: context.viewportWidth,
@@ -871,6 +900,12 @@
 				previewDrawerOpen = true;
 				renderPreviewReview();
 				requestAnimationFrame(() => document.querySelector("#preview-review-message")?.focus());
+			});
+			previewReviewDrawer.addEventListener("input", (event) => {
+				if (event.target.id === "preview-review-message" && previewPendingPin) previewPendingPin.message = event.target.value;
+			});
+			reviewDrawer.addEventListener("input", (event) => {
+				if (event.target.id === "review-message" && pendingPin) pendingPin.message = event.target.value;
 			});
 			previewReviewDrawer.addEventListener("click", async (event) => {
 				const action = event.target.closest("[data-preview-review-action]");

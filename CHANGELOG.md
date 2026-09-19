@@ -2,6 +2,15 @@
 
 All notable changes to Lenqo are documented here.
 
+## 0.1.3 — 2026-09-19
+
+- Validate Host and Origin on HTTP and WebSocket requests before serving reviews, captures, or the app proxy; support explicitly trusted hostnames through `server.allowedHosts`.
+- Verify project/config and instance ownership for server lifecycle commands; replace PID-based stopping with a private-token shutdown request.
+- Keep Live Preview drafts, focus, and text selections intact while scrolling, and retain draft text when reopening the comment drawer.
+- Return errors for malformed URLs without crashing the server; reject static-file symlink escapes.
+- Preserve the selected Preview viewport's real CSS width while scaling it to fit, including accurate pinned-comment coordinates.
+- Add server security/lifecycle and browser regression coverage.
+
 ## 0.1.2 — 2026-09-08
 
 - Refreshed the npm README with the Lenqo logo, real catalog and live-preview screenshots, and clearer onboarding links.
